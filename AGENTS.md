@@ -127,29 +127,47 @@ Do not bypass LiteLLM for new LLM provider integrations unless there is a strong
 
 ### Current Repository Baseline
 
-As of the server inspection on 2026-05-23, this repository is still in the preparation phase because the official challenge topic has not been released yet.
+As of the deployment verification on 2026-05-23, this repository has a working **stack-test baseline** for the AIIC Project Challenge. The official challenge topic has not yet been released, so this baseline is intentionally generic: it validates the full-stack workflow without binding the final product to a topic-specific interaction.
 
-Current tracked project content is limited to:
+Current tracked project content includes:
 
 ```text
 .gitignore
+AGENTS.md
 LICENSE
 README.md
-docs/2026-05-22_项目准备说明_.md
-docs/2026-05-22_项目准备说明_.pdf
+TASKS.md
+backend/
+frontend/
+docker-compose.yml
+infra/nginx/
+docs/
 .agents/skills/
 ```
-
-`AGENTS.md` may initially be untracked until the human developer chooses to commit it.
 
 The Git remote currently points to:
 
 ```text
 origin https://github.com/laonuo2004/AIIC.git
-branch main
+active development branch dev
+main currently lags behind the stack-test baseline
 ```
 
-Do not create a detailed application structure before the official topic is known. After the topic is released, create or update `TASKS.md` first, then choose the smallest structure that fits the product.
+Current baseline capabilities:
+
+```text
+FastAPI backend
+SQLite users, sessions, conversations, and messages
+HttpOnly cookie authentication
+LiteLLM streaming chat through OpenRouter
+Next.js + TypeScript frontend
+Docker Compose backend/frontend services
+Nginx public reverse proxy
+pytest coverage with mocked LLM calls
+real OpenRouter smoke test completed
+```
+
+Do not recreate the project structure from scratch when the official topic is released. Instead, update `TASKS.md` first, then adapt this working baseline with the smallest topic-specific changes that preserve deployability.
 
 ### Current Server Baseline
 
@@ -182,6 +200,19 @@ curl
 jq
 make
 gcc
+```
+
+Known working deployment state:
+
+```text
+Public URL: http://115.190.120.206/
+Public health endpoint: http://115.190.120.206/health
+Nginx / routes to Next.js frontend on 127.0.0.1:3000.
+Nginx /api/ and /health route to FastAPI backend on 127.0.0.1:8000.
+Docker Compose backend and frontend services have run successfully.
+Real chat stream has been verified with meta -> delta -> delta -> done.
+Conversation persistence has been verified.
+Logout then accessing a protected conversation returns 401.
 ```
 
 Codex must run shell commands with escalated permissions in this project. Use `sandbox_permissions="require_escalated"` for `exec_command` calls instead of running ordinary sandboxed shell commands.
@@ -234,14 +265,22 @@ Always follow these principles:
 
 ## 6. Expected Repository Structure
 
-Do not lock the project into a detailed directory tree before the official challenge topic is released.
+The repository already has a working stack-test structure. Treat it as the baseline for future work:
+
+```text
+backend/        FastAPI, SQLite, auth, LiteLLM, tests
+frontend/       Next.js, TypeScript, chat UI
+infra/nginx/    Nginx site template
+docs/           challenge notes and planning artifacts
+TASKS.md        current project plan and verification checklist
+```
 
 After the topic is released:
 
 1. Update `TASKS.md` first with the requirement interpretation, MVP, risks, and deployment plan.
-2. Choose the minimal repository structure needed for that specific product.
+2. Reuse the existing backend/frontend/infra boundaries unless there is a clear topic-driven reason to change them.
 3. Keep the default stack unless the human developer explicitly approves a change.
-4. Prefer conventional boundaries such as backend, frontend, infra, docs, and scripts only when they are actually needed.
+4. Preserve working auth, persistence, LiteLLM, Docker, and Nginx behavior unless the topic explicitly makes a piece unnecessary.
 5. Keep the structure easy to explain in the final README and demo video.
 
 Do not reorganize the entire repository without a clear reason.
@@ -276,7 +315,7 @@ POST /api/auth/register
 POST /api/auth/login
 POST /api/auth/logout
 GET  /api/auth/me
-POST /api/chat
+POST /api/chat/stream
 GET  /api/conversations
 GET  /api/conversations/{conversation_id}
 ```
@@ -347,15 +386,17 @@ The LiteLLM integration should:
 Example environment variables:
 
 ```env
-LLM_MODEL=gpt-4o-mini
-LLM_FALLBACK_MODEL=openrouter/openai/gpt-4o-mini
-LLM_TEMPERATURE=0.2
-LLM_TIMEOUT_SECONDS=60
+LITELLM_MODEL=openrouter/qwen/qwen3.6-flash
+LITELLM_FALLBACK_MODEL=openrouter/qwen/qwen3.6-flash
+LITELLM_TEMPERATURE=0.2
+LITELLM_TIMEOUT_SECONDS=60
 
 OPENAI_API_KEY=your_openai_api_key_here
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
+
+OpenRouter models must include the LiteLLM provider prefix, for example `openrouter/qwen/qwen3.6-flash`. The previous default `openrouter/openai/gpt-4o-mini` produced a region-related 403 during smoke testing, so do not assume it is available from this server. Keep the selected model configurable in `.env`; do not hardcode it in application code.
 
 Do not scatter direct SDK calls throughout the codebase.
 
@@ -462,6 +503,8 @@ Rules:
 - Do not commit `.env`.
 - Keep runtime dependencies and development dependencies separate.
 - Avoid adding large dependencies for small tasks.
+- Keep using `uv`; do not switch backend dependency management to `pip` to work around package mirror issues.
+- The backend Docker build currently uses `UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple` for faster package installation on the server.
 
 ---
 
@@ -536,14 +579,15 @@ DATABASE_URL=sqlite:///./data/app.sqlite3
 SECRET_KEY=replace_with_a_random_secret_key
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
-LITELLM_MODEL=gpt-4o-mini
-LITELLM_FALLBACK_MODEL=openrouter/openai/gpt-4o-mini
+LITELLM_MODEL=openrouter/qwen/qwen3.6-flash
+LITELLM_FALLBACK_MODEL=openrouter/qwen/qwen3.6-flash
 LITELLM_TEMPERATURE=0.2
 LITELLM_TIMEOUT_SECONDS=60
 
 OPENAI_API_KEY=your_openai_api_key_here
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
+NEXT_PUBLIC_API_BASE_URL=
 ```
 
 Rules:
@@ -597,24 +641,23 @@ Deployment should use Docker Compose.
 
 Docker and Docker Compose are installed and usable on the current server.
 
-Expected services may include:
+Current Compose services:
 
 ```text
 backend
 frontend
-nginx
 ```
 
 SQLite can be stored in a mounted volume or backend data directory.
 
 Nginx should act as the public reverse proxy.
 
-Typical routing:
+Current routing:
 
 ```text
 /              -> frontend
 /api/*         -> backend
-/health        -> backend or nginx health route
+/health        -> backend
 ```
 
 Before changing Docker-related files:
@@ -625,7 +668,14 @@ Before changing Docker-related files:
 4. Keep build time reasonable.
 5. Verify deployment after changes.
 
-If Docker files do not exist yet, create the smallest deployable Compose setup that matches the chosen MVP instead of copying unused boilerplate.
+Current Docker build acceleration:
+
+```text
+backend: UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple
+frontend: registry.npmmirror.com for corepack/npm/pnpm
+```
+
+If Docker builds become slow again, first determine whether the slow layer is base image pull, PyPI package installation, or npm package installation. Docker Hub registry mirrors do not accelerate GHCR images such as `ghcr.io/astral-sh/uv:*`.
 
 Do not assume local-only behavior is sufficient.
 
@@ -641,8 +691,9 @@ Current server baseline:
 
 ```text
 Nginx is installed and port 80 is already listening.
-/etc/nginx/sites-available/aiic-project exists and proxies / to http://127.0.0.1:8000.
-The default Nginx site may still be enabled and can affect what port 80 returns.
+/etc/nginx/sites-available/aiic-project should match infra/nginx/aiic-project.conf.
+The active project site routes / to frontend and /api/ plus /health to backend.
+The default Nginx site should not be assumed active, but active sites must still be inspected before changes.
 ```
 
 Before deployment, inspect the active site configuration instead of assuming a blank Nginx setup:
@@ -672,6 +723,7 @@ docker compose up -d --build
 sudo nginx -t
 sudo systemctl reload nginx
 curl -f http://127.0.0.1/health
+curl -f http://115.190.120.206/health
 ```
 
 If `aiic-project` should take over port 80 and the default site conflicts, disable the default site intentionally:
@@ -706,6 +758,8 @@ Recommended commit strategy:
 - Keep commits small and understandable.
 - Do not batch everything into one final commit.
 - Do not commit generated junk, cache files, `.env`, `.venv`, `node_modules`, or database files.
+- Continue development on `dev` unless the human developer explicitly chooses another branch.
+- Do not merge `dev` into `main` without explicit human approval.
 
 Suggested commit messages:
 
@@ -720,6 +774,7 @@ feat: implement login flow
 test: add pytest coverage for auth and chat APIs
 chore: add nginx reverse proxy
 docs: update deployment instructions
+docs: update Codex guidance for deployed baseline
 ```
 
 Before final submission, verify:
@@ -778,6 +833,12 @@ README should include:
 
 Do not leave documentation inconsistent with the actual app.
 
+Near-term documentation priorities after the stack-test deployment:
+
+1. Update README with the public URL, current model choice, deployment flow, test commands, limitations, and future work.
+2. Add or update `docs/demo_script.md` with a short flow: register, login, chat, refresh persistence, logout.
+3. When the official topic arrives, update `TASKS.md` before changing product behavior.
+
 ---
 
 ## 20. Task Planning Workflow
@@ -785,6 +846,8 @@ Do not leave documentation inconsistent with the actual app.
 When the official project topic is provided, do not immediately write code.
 
 First, help create or update `TASKS.md`.
+
+Use the existing stack-test baseline as the starting point. The first topic-specific plan should describe what will be reused, what will be changed, and what will be removed only if removal is necessary.
 
 The plan should include:
 
@@ -909,6 +972,7 @@ For deployment errors:
 - Check port binding.
 - Check environment variables.
 - Check Docker build output.
+- Check whether the failing package source is a base image registry, PyPI, or npm registry.
 - Check Nginx routing.
 - Run health checks.
 
@@ -1048,10 +1112,12 @@ Preferred commands:
 ```bash
 cd backend && uv run pytest
 cd backend && uv run ruff check .
-cd frontend && npm run lint
+cd frontend && pnpm lint
+cd frontend && pnpm build
 docker compose config
 docker compose up -d --build
 curl -f http://127.0.0.1/health
+curl -f http://115.190.120.206/health
 ```
 
 If some checks cannot be run, state clearly which checks were not run and why.
