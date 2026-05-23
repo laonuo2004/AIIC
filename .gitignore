@@ -99,6 +99,7 @@ ipython_config.py
 #   This is especially recommended for binary packages to ensure reproducibility, and is more
 #   commonly ignored for libraries.
 # uv.lock
+!backend/uv.lock
 
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
@@ -200,12 +201,22 @@ cython_debug/
 #   and can be added to the global gitignore or merged into this file. However, if you prefer, 
 #   you could uncomment the following to ignore the entire vscode folder
 # .vscode/
+.vscode/
 *.code-workspace
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
 # Ruff stuff:
 .ruff_cache/
+
+# AIIC project artifacts
+node_modules/
+.next/
+frontend/.next/
+backend/data/
+*.db
+*.sqlite
+*.sqlite3
 
 # PyPI configuration file
 .pypirc
