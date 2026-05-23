@@ -2,6 +2,8 @@
 
 Reusable full-stack baseline for the AIIC Project Challenge. This prototype is a generic ChatGPT-style app for validating the stack before the official topic is released.
 
+Public demo: http://115.190.120.206/
+
 ## Features
 
 - FastAPI backend with `GET /health`, auth APIs, conversation APIs, and streaming chat.
@@ -26,9 +28,12 @@ Required for real model calls:
 
 ```env
 OPENROUTER_API_KEY=your_openrouter_api_key_here
-LITELLM_MODEL=openrouter/openai/gpt-4o-mini
+LITELLM_MODEL=openrouter/qwen/qwen3.6-flash
+LITELLM_FALLBACK_MODEL=openrouter/qwen/qwen3.6-flash
 SECRET_KEY=replace_with_a_random_secret_key
 ```
+
+The current deployed smoke test uses `openrouter/qwen/qwen3.6-flash`. OpenRouter model names must include the LiteLLM provider prefix. The earlier `openrouter/openai/gpt-4o-mini` route returned a region-related 403 from this server, so it is not the default.
 
 Never commit `.env`.
 
@@ -86,6 +91,14 @@ curl -f http://127.0.0.1:8000/health
 
 The backend stores SQLite data in the `backend_data` Docker volume.
 
+The Compose file binds backend and frontend ports to `127.0.0.1` so Nginx is the public entrypoint. For public deployment, set:
+
+```env
+APP_ENV=production
+FRONTEND_ORIGIN=http://115.190.120.206
+NEXT_PUBLIC_API_BASE_URL=
+```
+
 ## Nginx
 
 Use `infra/nginx/aiic-project.conf` as the server config. It routes:
@@ -99,6 +112,7 @@ After installing or changing the site:
 ```bash
 sudo nginx -t
 sudo systemctl reload nginx
+curl -f http://115.190.120.206/health
 ```
 
 ## API Summary
@@ -118,9 +132,10 @@ sudo systemctl reload nginx
 - Auth is intentionally lightweight.
 - SQLite is chosen for deadline safety and demo simplicity.
 - Chat depends on external provider availability and valid environment keys.
+- The public deployment currently uses HTTP, not HTTPS.
 
 ## Future Work
 
 - Adapt the product flow to the official challenge topic.
 - Add topic-specific prompts and evaluation tests.
-- Add a short demo script and final deployment notes.
+- Extend docs and demo material after the official topic is released.

@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 1440
     frontend_origin: str = "http://localhost:3000"
 
-    litellm_model: str = "openrouter/openai/gpt-4o-mini"
-    litellm_fallback_model: str | None = None
+    litellm_model: str = "openrouter/qwen/qwen3.6-flash"
+    litellm_fallback_model: str | None = "openrouter/qwen/qwen3.6-flash"
     litellm_temperature: float = 0.2
     litellm_timeout_seconds: int = 60
     openrouter_api_key: str | None = Field(default=None, repr=False)
