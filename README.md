@@ -1,5 +1,7 @@
 # AIIC Stack Test Chat
 
+[![CI](https://github.com/laonuo2004/AIIC/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/laonuo2004/AIIC/actions/workflows/ci.yml)
+
 Reusable full-stack baseline for the AIIC Project Challenge. This prototype is a generic ChatGPT-style app for validating the stack before the official topic is released.
 
 Public demo: http://115.190.120.206/
@@ -80,6 +82,14 @@ pnpm lint
 pnpm build
 ```
 
+The GitHub CI workflow runs the same backend and frontend checks on pushes and pull requests for `dev` and `main`. It also validates the Compose file with:
+
+```bash
+docker compose config --quiet --no-env-resolution
+```
+
+The `--no-env-resolution` flag keeps CI focused on Compose syntax and service wiring without reading or printing local `.env` values.
+
 ## Docker Compose
 
 ```bash
@@ -98,6 +108,29 @@ APP_ENV=production
 FRONTEND_ORIGIN=http://115.190.120.206
 NEXT_PUBLIC_API_BASE_URL=
 ```
+
+## CI, Releases, and Images
+
+Daily development happens on `dev`. Before merging into `main`, open a pull request and wait for the `backend`, `frontend`, and `compose` CI jobs to pass.
+
+GitHub Container Registry image publishing is configured for release tags, published GitHub Releases, and manual workflow runs:
+
+- `ghcr.io/laonuo2004/aiic-backend`
+- `ghcr.io/laonuo2004/aiic-frontend`
+
+Published images receive the release tag, a short commit SHA tag, and `latest` for official releases. The current server deployment can continue using local `docker compose up -d --build`; GHCR images are provided as release artifacts and do not trigger automatic production deployment.
+
+Release flow:
+
+```bash
+git checkout dev
+git pull
+# update docs or version notes as needed
+git tag -a v0.2 -m "v0.2"
+git push origin v0.2
+```
+
+Then create a GitHub Release from the tag. The repository includes `.github/release.yml` so GitHub auto-generated release notes are grouped into Features, Fixes, Docs, Tests, Chores, Deployment, and Breaking Changes.
 
 ## Nginx
 
