@@ -1,4 +1,5 @@
 import json
+import logging
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Annotated
@@ -15,6 +16,7 @@ from app.services.llm import stream_llm_response
 
 router = APIRouter(tags=["chat"])
 CurrentUser = Annotated[User, Depends(current_user)]
+logger = logging.getLogger(__name__)
 
 
 def _sse(event: str, data: dict[str, object]) -> str:
@@ -69,6 +71,7 @@ def stream_chat(
                 assistant_parts.append(text)
                 yield _sse("delta", {"text": text})
         except Exception:
+            logger.exception("LLM streaming failed")
             yield _sse("error", {"message": "The AI provider failed. Please try again."})
             return
 
