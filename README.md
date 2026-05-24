@@ -1,43 +1,135 @@
-# AIIC Stack Test Chat
+# ResearchMocker
 
-[![CI](https://github.com/laonuo2004/AIIC/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/laonuo2004/AIIC/actions/workflows/ci.yml)
-
-Reusable full-stack baseline for the AIIC Project Challenge. This prototype is a generic ChatGPT-style app for validating the stack before the official topic is released.
+ResearchMocker is an AI project-deep-dive and reviewer-style mock interviewer for CS/AI undergraduate students preparing for research-oriented interviews. It focuses on the hardest part of graduate recommendation, research internship, and lab admission interviews: defending a real project under continuous follow-up questions.
 
 Public demo: http://115.190.120.206/
 
-## Features
+Health check: http://115.190.120.206/health
 
-- FastAPI backend with `GET /health`, auth APIs, conversation APIs, and streaming chat.
-- LiteLLM SDK integration configured for OpenRouter-style models by environment variable.
-- SQLite persistence for users, sessions, conversations, and messages.
-- HttpOnly cookie session auth with hashed passwords.
-- Next.js + TypeScript frontend with login/register, conversation sidebar, streaming assistant output, and error states.
-- Docker Compose services for backend and frontend.
-- Nginx route template for public deployment.
+## Product Positioning
+
+Many students preparing for graduate recommendation interviews, research internships, or lab admission interviews have project experience but lack realistic practice and actionable feedback. Recent lightweight user research showed that students are especially worried about vague project answers being challenged by teachers or reviewers: why this design was chosen, whether alternatives were tried, whether experiments prove the claim, what part was personally done by the candidate, and whether the project story is convincing.
+
+ResearchMocker aims to close that gap with a narrow workflow:
+
+1. Enter a project card: candidate profile, target direction, project/research experience, personal contribution, evidence, and weak points.
+2. Start a mock interview.
+3. Answer one project-deep-dive question at a time.
+4. Receive structured feedback after each answer, including teacher-perspective explanation and answer rhythm feedback.
+5. Continue with adaptive follow-up questions that press on vague or unsupported claims, including reviewer-style method and experiment challenges.
+6. Finish with a final review report, objective pass-risk judgment, and next-step practice plan.
+
+The product should be better than plain ChatGPT because it enforces an interview workflow, focuses on project/research depth, exposes unsupported claims, controls interview rhythm, reuses saved context when available, and turns each answer into concrete feedback.
+
+Value proposition:
+
+```text
+Not a friendly chatbot, but a realistic research interview pressure test that catches vague answers, asks follow-up questions, and gives actionable feedback.
+```
+
+## Current Implementation Status
+
+Implemented:
+
+- FastAPI backend with health, auth, interview, conversation, provider, attachment, and streaming chat APIs.
+- User registration/login with HttpOnly session cookies and hashed passwords.
+- SQLite persistence for users, sessions, interview sessions, interview turns, conversations, messages, provider records, model cache, and attachments.
+- LiteLLM/OpenRouter calls routed through the backend with project-level `.env` credentials.
+- Interview-context attachments:
+  - text files are injected into prompts as protected XML/CDATA context
+  - image files are sent to OpenRouter-compatible multimodal models as `image_url` inputs
+  - PDF files are accepted, text is extracted when available, and pages are rendered as image inputs with a page limit
+- Next.js + TypeScript frontend with a ResearchMocker text interview workflow, saved interview history, final report view, safe settings page, and experimental face-to-face placeholder.
+- Docker Compose backend/frontend services behind Nginx.
+- Backend pytest coverage and frontend lint/build checks.
+
+Still planned:
+
+- Real Volcengine face-to-face speech/video integration.
+- Exportable final report.
+- Stronger long-term personalization across practice sessions.
+
+## Core Features
+
+MVP:
+
+- Text-based mock interview for research/project deep dives.
+- Project card setup with self-introduction, project experience, target direction, personal contribution, key methods, experiments/results, failure cases, weak points, and optional supporting files.
+- One-question-at-a-time interview flow.
+- Adaptive follow-up based on the candidate's previous answer.
+- Structured feedback with strengths, weaknesses, score, teacher/reviewer perspective, answer rhythm/length feedback, and actionable advice.
+- Final report covering technical depth, project ownership, research thinking, communication clarity, pass-risk judgment, vulnerable follow-up points, and next practice steps.
+- Login and saved interview records.
+
+Optional differentiator:
+
+- Face-to-face interview mode using an uploaded interviewer image and audio sample.
+- Volcengine real-time speech model for speech interaction.
+- Volcengine OmniHuman 1.5 fast mode for ready/listening/speaking digital human video states.
+
+The optional face-to-face mode must not block the text MVP.
 
 ## Tech Stack
 
-- Backend: Python 3.12, FastAPI, SQLAlchemy, SQLite, LiteLLM, pytest, uv.
+- Backend: Python 3.12, FastAPI, SQLAlchemy, SQLite, LiteLLM, httpx, pytest, uv.
 - Frontend: TypeScript, Next.js, React, pnpm, standard CSS.
-- Deployment: Docker Compose and Nginx reverse proxy.
+- Deployment: Docker Compose and Nginx reverse proxy on Ubuntu.
+- LLM routing: OpenRouter through LiteLLM.
+- Optional realtime/digital human provider: Volcengine APIs.
+
+## Model Strategy
+
+Normal users should not need to understand providers, API keys, or raw model IDs.
+
+Backend routing:
+
+- `openrouter/qwen/qwen3.6-plus`
+  - candidate profile understanding
+  - project/research experience analysis
+  - final review report
+  - deeper reasoning steps
+
+- `openrouter/qwen/qwen3.6-flash`
+  - frequent interview turns
+  - follow-up question generation
+  - single-answer feedback
+  - fast practice interactions
+
+Both selected OpenRouter models are treated as supporting text, image, and video input based on provider-side confirmation.
 
 ## Environment
 
 Create `.env` from `.env.example` and replace placeholder secrets.
 
-Required for real model calls:
+Current baseline values:
 
 ```env
-OPENROUTER_API_KEY=your_openrouter_api_key_here
+APP_ENV=development
+DATABASE_URL=sqlite:///./data/app.sqlite3
+SECRET_KEY=replace_with_a_random_secret_key
 LITELLM_MODEL=openrouter/qwen/qwen3.6-flash
 LITELLM_FALLBACK_MODEL=openrouter/qwen/qwen3.6-flash
-SECRET_KEY=replace_with_a_random_secret_key
+INTERVIEW_DEEP_MODEL=openrouter/qwen/qwen3.6-plus
+INTERVIEW_FAST_MODEL=openrouter/qwen/qwen3.6-flash
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+UPLOAD_DIR=./data/uploads
+MAX_UPLOAD_BYTES=5242880
+MAX_ATTACHMENTS_PER_MESSAGE=4
+MAX_PDF_PAGES_PER_ATTACHMENT=12
 ```
 
-The current deployed smoke test uses `openrouter/qwen/qwen3.6-flash`. OpenRouter model names must include the LiteLLM provider prefix. The earlier `openrouter/openai/gpt-4o-mini` route returned a region-related 403 from this server, so it is not the default.
+Production should use a server-side OpenRouter key. Do not expose provider keys in frontend code or commit them to Git.
 
-Never commit `.env`.
+Proxy variables supported by the backend environment:
+
+```env
+HTTP_PROXY=
+HTTPS_PROXY=
+NO_PROXY=127.0.0.1,localhost
+OPENROUTER_HTTP_PROXY=
+```
+
+Potential Volcengine variables will be documented when that integration begins. Do not add real provider credentials to the repository.
 
 ## Local Development
 
@@ -57,16 +149,90 @@ pnpm install
 pnpm dev
 ```
 
-For local cross-origin frontend calls, set:
+For local cross-origin frontend calls:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 FRONTEND_ORIGIN=http://localhost:3000
 ```
 
+## API Summary
+
+Current APIs:
+
+- `GET /health`
+- `GET /api/status`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `POST /api/interviews`
+- `GET /api/interviews`
+- `GET /api/interviews/{interview_id}`
+- `POST /api/interviews/{interview_id}/answers`
+- `POST /api/interviews/{interview_id}/finish`
+- `POST /api/chat/stream`
+- `GET /api/conversations`
+- `GET /api/conversations/{conversation_id}`
+- `POST /api/attachments`
+- `GET /api/attachments/{id}`
+
+The generic chat/provider APIs remain for compatibility, but the product UI uses the interview APIs.
+
+## Uploads
+
+The current backend supports protected attachment uploads. Attachments are not served from a public static directory.
+
+- Upload endpoint: `POST /api/attachments`
+- Download/view endpoint: `GET /api/attachments/{id}`
+- Storage directory: `UPLOAD_DIR`, default `./data/uploads`
+- Single-file limit: `MAX_UPLOAD_BYTES`, default `5242880` bytes, 5MB
+- Per-message limit: `MAX_ATTACHMENTS_PER_MESSAGE`, default `4`
+- PDF page limit for interview context: `MAX_PDF_PAGES_PER_ATTACHMENT`, default `12`
+- Text extensions: `.txt`, `.md`, `.json`, `.csv`, `.log`
+- Image MIME types: `image/png`, `image/jpeg`, `image/webp`, `image/gif`
+- PDF MIME type: `application/pdf`
+
+For the interview product, attachments are available when creating an interview. They are useful for project notes, papers, reports, screenshots, experiment tables, and other supporting material. Text/PDF content is added to the LLM context, while images and rendered PDF pages are passed as multimodal image inputs.
+
+## Docker Compose
+
+```bash
+cp .env.example .env
+docker compose config
+docker compose up -d --build
+curl -f http://127.0.0.1:8000/health
+```
+
+The backend stores SQLite data in the `backend_data` Docker volume. Uploaded files should stay outside Git tracking.
+
+The Compose file binds backend and frontend ports to `127.0.0.1` so Nginx is the public entrypoint. For public deployment:
+
+```env
+APP_ENV=production
+FRONTEND_ORIGIN=http://115.190.120.206
+NEXT_PUBLIC_API_BASE_URL=
+```
+
+## Nginx
+
+Use the Nginx config under `infra/nginx/` as the current server config. It routes:
+
+- `/` to `http://127.0.0.1:3000`
+- `/api/*` to `http://127.0.0.1:8000/api/*`
+- `/health` to `http://127.0.0.1:8000/health`
+
+After installing or changing the site:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+curl -f http://115.190.120.206/health
+```
+
 ## Testing
 
-Backend tests mock the LLM stream and do not call paid APIs.
+Backend tests mock LLM/provider calls and must not call paid APIs.
 
 ```bash
 cd backend
@@ -82,93 +248,50 @@ pnpm lint
 pnpm build
 ```
 
-The GitHub CI workflow runs the same backend and frontend checks on pushes and pull requests for `dev` and `main`. It also validates the Compose file with:
+Compose validation:
 
 ```bash
 docker compose config --quiet --no-env-resolution
-```
-
-The `--no-env-resolution` flag keeps CI focused on Compose syntax and service wiring without reading or printing local `.env` values.
-
-## Docker Compose
-
-```bash
-cp .env.example .env
-docker compose config
-docker compose up -d --build
-curl -f http://127.0.0.1:8000/health
-```
-
-The backend stores SQLite data in the `backend_data` Docker volume.
-
-The Compose file binds backend and frontend ports to `127.0.0.1` so Nginx is the public entrypoint. For public deployment, set:
-
-```env
-APP_ENV=production
-FRONTEND_ORIGIN=http://115.190.120.206
-NEXT_PUBLIC_API_BASE_URL=
 ```
 
 ## CI, Releases, and Images
 
 Daily development happens on `dev`. Before merging into `main`, open a pull request and wait for the `backend`, `frontend`, and `compose` CI jobs to pass.
 
-GitHub Container Registry image publishing is configured for release tags, published GitHub Releases, and manual workflow runs:
+GitHub Container Registry image publishing is configured for release tags, published GitHub Releases, and manual workflow runs. The current server deployment can continue using local `docker compose up -d --build`; registry images are release artifacts and do not trigger automatic production deployment.
 
-- `ghcr.io/laonuo2004/aiic-backend`
-- `ghcr.io/laonuo2004/aiic-frontend`
+## Demo Flow
 
-Published images receive the release tag, a short commit SHA tag, and `latest` for official releases. The current server deployment can continue using local `docker compose up -d --build`; GHCR images are provided as release artifacts and do not trigger automatic production deployment.
+Target 3-minute demo:
 
-Release flow:
+1. Open the public URL.
+2. Log in with a test account or register quickly.
+3. Enter a candidate profile and project summary.
+4. Upload supporting material such as a project PDF/report and an architecture or result image.
+5. Start a mock interview.
+6. Show the AI asking a targeted project/research question based on the profile and uploaded context.
+7. Give a vague answer so the product exposes missing evidence or unclear personal contribution.
+8. Show structured feedback, teacher-perspective explanation, rhythm feedback, and an adaptive follow-up question.
+9. Finish and show the final review report.
+10. Briefly show engineering stack and deployment.
 
-```bash
-git checkout dev
-git pull
-# update docs or version notes as needed
-git tag -a v0.2 -m "v0.2"
-git push origin v0.2
-```
-
-Then create a GitHub Release from the tag. The repository includes `.github/release.yml` so GitHub auto-generated release notes are grouped into Features, Fixes, Docs, Tests, Chores, Deployment, and Breaking Changes.
-
-## Nginx
-
-Use `infra/nginx/aiic-project.conf` as the server config. It routes:
-
-- `/` to `http://127.0.0.1:3000`
-- `/api/*` to `http://127.0.0.1:8000/api/*`
-- `/health` to `http://127.0.0.1:8000/health`
-
-After installing or changing the site:
-
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-curl -f http://115.190.120.206/health
-```
-
-## API Summary
-
-- `GET /health`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
-- `POST /api/chat/stream`
-- `GET /api/conversations`
-- `GET /api/conversations/{conversation_id}`
+If the face-to-face page is ready, show it as the bridge from text practice to realistic interview simulation. If it is not ready, do not present it as implemented.
 
 ## Limitations
 
-- This is a stack-test prototype, not the final topic-specific product.
+- The current public deployment uses HTTP, not HTTPS.
 - Auth is intentionally lightweight.
-- SQLite is chosen for deadline safety and demo simplicity.
-- Chat depends on external provider availability and valid environment keys.
-- The public deployment currently uses HTTP, not HTTPS.
+- SQLite is chosen for demo reliability and simple deployment, not high-concurrency production traffic.
+- The existing codebase still contains generic chat/provider baseline pieces that are being adapted into an interview product.
+- PDF multimodal context increases request size, so PDF pages are limited for demo reliability.
+- The face-to-face interview mode depends on external Volcengine APIs and may remain an experimental extension if time is tight.
+- Automated tests must mock external providers; real provider smoke tests should be manual and controlled.
 
 ## Future Work
 
-- Adapt the product flow to the official challenge topic.
-- Add topic-specific prompts and evaluation tests.
-- Extend docs and demo material after the official topic is released.
+- Add browser-level regression screenshots for the core interview layout.
+- Run and document a full public demo regression: upload PDF/image, complete multi-turn interview, and finish the report.
+- Add a polished test account/demo dataset.
+- Integrate Volcengine real-time speech and OmniHuman 1.5 for face-to-face interview mode.
+- Add HTTPS/domain deployment if time allows.
+- Expand interview templates by research direction.

@@ -2,35 +2,59 @@
 
 import {
   Bot,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  FileAudio,
+  FileText,
+  ImagePlus,
+  Loader2,
   LogOut,
-  Menu,
-  MessageSquarePlus,
-  PanelLeftClose,
+  MessageSquareText,
+  Moon,
+  RefreshCw,
   Send,
+  Settings,
+  Sparkles,
+  Sun,
+  Trash2,
   UserRound,
+  Video,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 
 import {
-  ConversationSummary,
-  Message,
+  CandidateProfile,
+  Attachment,
+  Interview,
+  InterviewSummary,
+  RuntimeStatus,
   User,
-  getConversation,
+  createInterview,
+  finishInterview,
+  getInterview,
   getMe,
-  listConversations,
+  getRuntimeStatus,
+  listInterviews,
   login,
   logout,
   register,
-  streamChat,
+  submitInterviewAnswer,
+  uploadAttachments,
 } from "@/lib/api";
 
-type DraftMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-};
-
 type AuthMode = "login" | "register";
+type View = "text" | "face" | "settings";
+type ThemeMode = "system" | "light" | "dark";
+
+const THEME_KEY = "researchmocker-theme-mode";
+
+const EMPTY_PROFILE: CandidateProfile = {
+  self_introduction: "",
+  project_experience: "",
+  target_direction: "",
+  weak_points: "",
+};
 
 export function ChatApp() {
   const [user, setUser] = useState<User | null>(null);
@@ -40,146 +64,192 @@ export function ChatApp() {
   const [authError, setAuthError] = useState("");
   const [booting, setBooting] = useState(true);
 
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
-  const [messages, setMessages] = useState<DraftMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [chatError, setChatError] = useState("");
-  const [streaming, setStreaming] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [view, setView] = useState<View>("text");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
+  const [settingsError, setSettingsError] = useState("");
 
-  const transcriptRef = useRef<HTMLDivElement | null>(null);
+  const [profile, setProfile] = useState<CandidateProfile>(EMPTY_PROFILE);
+  const [profileAttachments, setProfileAttachments] = useState<Attachment[]>([]);
+  const [uploadError, setUploadError] = useState("");
+  const [interviews, setInterviews] = useState<InterviewSummary[]>([]);
+  const [activeInterview, setActiveInterview] = useState<Interview | null>(null);
+  const [answer, setAnswer] = useState("");
+  const [interviewError, setInterviewError] = useState("");
+  const [working, setWorking] = useState(false);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(THEME_KEY) as ThemeMode | null;
+    if (saved === "system" || saved === "light" || saved === "dark") {
+      setThemeMode(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.themeMode = themeMode;
+    window.localStorage.setItem(THEME_KEY, themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     getMe()
-      .then((currentUser) => {
+      .then(async (currentUser) => {
         setUser(currentUser);
-        return refreshConversations();
+        await Promise.all([refreshInterviews(), refreshStatus()]);
       })
       .catch(() => undefined)
       .finally(() => setBooting(false));
   }, []);
 
-  useEffect(() => {
-    transcriptRef.current?.scrollTo({
-      top: transcriptRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages]);
+  const activeTurn = useMemo(
+    () => activeInterview?.turns.find((turn) => turn.answer === null) ?? null,
+    [activeInterview],
+  );
 
-  const canSend = input.trim().length > 0 && !streaming;
+  const answeredTurns = useMemo(
+    () => activeInterview?.turns.filter((turn) => turn.answer !== null) ?? [],
+    [activeInterview],
+  );
 
-  async function refreshConversations() {
-    const items = await listConversations();
-    setConversations(items);
+  const canStart =
+    profile.self_introduction.trim().length > 0 &&
+    profile.project_experience.trim().length > 0 &&
+    profile.target_direction.trim().length > 0;
+
+  async function refreshInterviews() {
+    const items = await listInterviews();
+    setInterviews(items);
     return items;
+  }
+
+  async function refreshStatus() {
+    try {
+      const status = await getRuntimeStatus();
+      setRuntimeStatus(status);
+      setSettingsError("");
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : "Runtime status unavailable");
+    }
   }
 
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAuthError("");
     try {
+      const trimmedUsername = username.trim();
       const nextUser =
         authMode === "register"
-          ? await register(username.trim(), password)
-          : await login(username.trim(), password);
+          ? await register(trimmedUsername, password)
+          : await login(trimmedUsername, password);
       if (authMode === "register") {
-        await login(username.trim(), password);
+        await login(trimmedUsername, password);
       }
       setUser(nextUser);
       setPassword("");
-      await refreshConversations();
+      await Promise.all([refreshInterviews(), refreshStatus()]);
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "Authentication failed");
     }
   }
 
-  async function selectConversation(id: number) {
-    setChatError("");
-    const detail = await getConversation(id);
-    setActiveConversationId(detail.id);
-    setMessages(
-      detail.messages.map((message: Message) => ({
-        id: String(message.id),
-        role: message.role === "user" ? "user" : "assistant",
-        content: message.content,
-      })),
-    );
-  }
-
-  function startNewConversation() {
-    setActiveConversationId(null);
-    setMessages([]);
-    setChatError("");
-    setInput("");
-  }
-
-  async function submitMessage(event: FormEvent<HTMLFormElement>) {
+  async function startInterview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const content = input.trim();
-    if (!content || streaming) return;
-
-    const assistantId = `assistant-${Date.now()}`;
-    setMessages((current) => [
-      ...current,
-      { id: `user-${Date.now()}`, role: "user", content },
-      { id: assistantId, role: "assistant", content: "" },
-    ]);
-    setInput("");
-    setChatError("");
-    setStreaming(true);
-
+    if (!canStart || working) return;
+    setWorking(true);
+    setInterviewError("");
     try {
-      await streamChat(content, activeConversationId, (event) => {
-        if (event.event === "meta") {
-          setActiveConversationId(event.data.conversation_id);
-          return;
-        }
-
-        if (event.event === "delta") {
-          setMessages((current) =>
-            current.map((message) =>
-              message.id === assistantId
-                ? { ...message, content: message.content + event.data.text }
-                : message,
-            ),
-          );
-          return;
-        }
-
-        if (event.event === "error") {
-          setChatError(event.data.message);
-          setMessages((current) => current.filter((message) => message.id !== assistantId));
-          return;
-        }
-
-        if (event.event === "done") {
-          refreshConversations().catch(() => undefined);
-        }
-      });
+      const created = await createInterview({
+        self_introduction: profile.self_introduction.trim(),
+        project_experience: profile.project_experience.trim(),
+        target_direction: profile.target_direction.trim(),
+        weak_points: profile.weak_points.trim(),
+      }, profileAttachments.map((attachment) => attachment.id));
+      setActiveInterview(created);
+      await refreshInterviews();
     } catch (error) {
-      setMessages((current) => current.filter((message) => message.id !== assistantId));
-      setChatError(error instanceof Error ? error.message : "Chat request failed");
+      setInterviewError(error instanceof Error ? error.message : "Could not start interview");
     } finally {
-      setStreaming(false);
+      setWorking(false);
     }
+  }
+
+  async function selectInterview(id: number) {
+    setWorking(true);
+    setInterviewError("");
+    try {
+      setActiveInterview(await getInterview(id));
+    } catch (error) {
+      setInterviewError(error instanceof Error ? error.message : "Could not load interview");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function submitAnswer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!activeInterview || !answer.trim() || working) return;
+    setWorking(true);
+    setInterviewError("");
+    try {
+      setActiveInterview(await submitInterviewAnswer(activeInterview.id, answer.trim()));
+      setAnswer("");
+      await refreshInterviews();
+    } catch (error) {
+      setInterviewError(error instanceof Error ? error.message : "Could not submit answer");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function finishActiveInterview() {
+    if (!activeInterview || working) return;
+    setWorking(true);
+    setInterviewError("");
+    try {
+      setActiveInterview(await finishInterview(activeInterview.id));
+      await refreshInterviews();
+    } catch (error) {
+      setInterviewError(error instanceof Error ? error.message : "Could not finish interview");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  function resetInterviewDraft() {
+    setActiveInterview(null);
+    setAnswer("");
+    setInterviewError("");
+  }
+
+  async function addProfileAttachments(files: File[]) {
+    if (files.length === 0 || working) return;
+    setWorking(true);
+    setUploadError("");
+    try {
+      const result = await uploadAttachments(files);
+      setProfileAttachments((current) => [...current, ...result.attachments]);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  function removeProfileAttachment(id: number) {
+    setProfileAttachments((current) => current.filter((attachment) => attachment.id !== id));
   }
 
   async function signOut() {
     await logout().catch(() => undefined);
     setUser(null);
-    setConversations([]);
-    startNewConversation();
+    setInterviews([]);
+    setActiveInterview(null);
+    setPassword("");
   }
-
-  const activeTitle = useMemo(() => {
-    return conversations.find((item) => item.id === activeConversationId)?.title ?? "New thread";
-  }, [activeConversationId, conversations]);
 
   if (booting) {
     return (
       <main className="boot-screen">
-        <div className="boot-mark">AIIC</div>
+        <div className="boot-mark">ResearchMocker</div>
       </main>
     );
   }
@@ -188,13 +258,12 @@ export function ChatApp() {
     return (
       <main className="auth-screen">
         <section className="auth-panel" aria-labelledby="auth-title">
-          <div>
-            <p className="eyebrow">Stack test prototype</p>
-            <h1 id="auth-title">AIIC Chat</h1>
-            <p className="auth-copy">
-              FastAPI, SQLite sessions, LiteLLM streaming, and a reusable Next.js interface.
-            </p>
-          </div>
+          <p className="eyebrow">Research interview practice</p>
+          <h1 id="auth-title">ResearchMocker</h1>
+          <p className="auth-copy">
+            Practice project deep dives with adaptive follow-up questions, structured feedback,
+            and a final review report.
+          </p>
 
           <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
             <button
@@ -247,77 +316,576 @@ export function ChatApp() {
 
   return (
     <main className="app-shell">
-      <aside className={sidebarOpen ? "sidebar open" : "sidebar"}>
-        <div className="sidebar-head">
-          <button className="icon-button desktop-only" onClick={() => setSidebarOpen(false)} type="button">
-            <PanelLeftClose size={18} />
-          </button>
-          <span>Threads</span>
-          <button className="icon-button" onClick={startNewConversation} type="button" title="New chat">
-            <MessageSquarePlus size={18} />
-          </button>
-        </div>
-        <div className="conversation-list">
-          {conversations.map((conversation) => (
-            <button
-              className={conversation.id === activeConversationId ? "conversation active" : "conversation"}
-              key={conversation.id}
-              onClick={() => selectConversation(conversation.id)}
-              type="button"
-            >
-              <span>{conversation.title}</span>
-              <small>{new Date(conversation.updated_at).toLocaleDateString()}</small>
-            </button>
-          ))}
-          {conversations.length === 0 ? <p className="empty-note">No saved threads yet.</p> : null}
-        </div>
+      <aside className="rail" aria-label="Primary navigation">
+        <button className="rail-logo" type="button" onClick={() => setView("text")}>
+          RM
+        </button>
+        <nav className="rail-nav">
+          <RailButton active={view === "text"} label="Text Interview" onClick={() => setView("text")}>
+            <MessageSquareText size={19} />
+          </RailButton>
+          <RailButton
+            active={view === "face"}
+            label="Face-to-Face"
+            onClick={() => setView("face")}
+          >
+            <Video size={19} />
+          </RailButton>
+          <RailButton
+            active={view === "settings"}
+            label="Settings"
+            onClick={() => setView("settings")}
+          >
+            <Settings size={19} />
+          </RailButton>
+        </nav>
+        <button className="rail-action" onClick={signOut} type="button" title="Logout">
+          <LogOut size={19} />
+          <span>Logout</span>
+        </button>
       </aside>
 
-      <section className="chat-panel">
-        <header className="chat-header">
-          <button className="icon-button mobile-toggle" onClick={() => setSidebarOpen(true)} type="button">
-            <Menu size={18} />
-          </button>
-          <div>
-            <p>{activeTitle}</p>
-            <span>Signed in as {user.username}</span>
-          </div>
-          <button className="icon-button" onClick={signOut} type="button" title="Logout">
-            <LogOut size={18} />
-          </button>
-        </header>
-
-        <div className="transcript" ref={transcriptRef}>
-          {messages.length === 0 ? (
-            <div className="starter">
-              <Bot size={28} />
-              <h2>Start with a focused stack-test prompt.</h2>
-              <p>Ask for a product idea, an implementation outline, or a quick API sanity check.</p>
-            </div>
-          ) : (
-            messages.map((message) => (
-              <article className={`message ${message.role}`} key={message.id}>
-                <div className="avatar">{message.role === "user" ? <UserRound size={16} /> : <Bot size={16} />}</div>
-                <p>{message.content || (streaming ? "Thinking..." : "")}</p>
-              </article>
-            ))
-          )}
-        </div>
-
-        {chatError ? <div className="chat-error">{chatError}</div> : null}
-
-        <form className="composer" onSubmit={submitMessage}>
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Send a message through the FastAPI + LiteLLM backend"
-            rows={1}
+      <section className="workspace">
+        {view === "text" ? (
+          <TextInterviewWorkspace
+            activeInterview={activeInterview}
+            activeTurn={activeTurn}
+            answer={answer}
+            answeredTurns={answeredTurns}
+            canStart={canStart}
+            error={interviewError}
+            finishActiveInterview={finishActiveInterview}
+            interviews={interviews}
+            profile={profile}
+            profileAttachments={profileAttachments}
+            resetInterviewDraft={resetInterviewDraft}
+            removeProfileAttachment={removeProfileAttachment}
+            selectInterview={selectInterview}
+            addProfileAttachments={addProfileAttachments}
+            setAnswer={setAnswer}
+            setProfile={setProfile}
+            startInterview={startInterview}
+            submitAnswer={submitAnswer}
+            uploadError={uploadError}
+            user={user}
+            working={working}
           />
-          <button className="send-button" disabled={!canSend} type="submit" title="Send">
-            <Send size={18} />
-          </button>
-        </form>
+        ) : null}
+
+        {view === "face" ? <FaceWorkspace /> : null}
+
+        {view === "settings" ? (
+          <SettingsWorkspace
+            refreshStatus={refreshStatus}
+            runtimeStatus={runtimeStatus}
+            settingsError={settingsError}
+            setThemeMode={setThemeMode}
+            themeMode={themeMode}
+          />
+        ) : null}
       </section>
     </main>
   );
+}
+
+function RailButton({
+  active,
+  children,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  children: ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button className={active ? "rail-action active" : "rail-action"} onClick={onClick} type="button" title={label}>
+      {children}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function TextInterviewWorkspace(props: {
+  activeInterview: Interview | null;
+  activeTurn: Interview["turns"][number] | null;
+  answer: string;
+  answeredTurns: Interview["turns"];
+  canStart: boolean;
+  error: string;
+  finishActiveInterview: () => void;
+  interviews: InterviewSummary[];
+  profile: CandidateProfile;
+  profileAttachments: Attachment[];
+  resetInterviewDraft: () => void;
+  removeProfileAttachment: (id: number) => void;
+  selectInterview: (id: number) => void;
+  addProfileAttachments: (files: File[]) => void;
+  setAnswer: (value: string) => void;
+  setProfile: (value: CandidateProfile) => void;
+  startInterview: (event: FormEvent<HTMLFormElement>) => void;
+  submitAnswer: (event: FormEvent<HTMLFormElement>) => void;
+  uploadError: string;
+  user: User;
+  working: boolean;
+}) {
+  return (
+    <div className="interview-layout">
+      <aside className="session-panel">
+        <div>
+          <p className="eyebrow">Text Interview</p>
+          <h2>Saved sessions</h2>
+        </div>
+        <button className="secondary-button" onClick={props.resetInterviewDraft} type="button">
+          New practice
+        </button>
+        <div className="session-list">
+          {props.interviews.map((interview) => (
+            <button
+              className={
+                props.activeInterview?.id === interview.id ? "session-row active" : "session-row"
+              }
+              key={interview.id}
+              onClick={() => props.selectInterview(interview.id)}
+              type="button"
+            >
+              <strong>{interview.title}</strong>
+              <span>{interview.status} · {new Date(interview.updated_at).toLocaleDateString()}</span>
+            </button>
+          ))}
+          {props.interviews.length === 0 ? (
+            <p className="empty-note">No interviews yet. Start with the candidate profile.</p>
+          ) : null}
+        </div>
+      </aside>
+
+      <div className="interview-main">
+        <header className="workspace-header">
+          <div>
+            <p>{props.activeInterview?.title ?? "ResearchMocker"}</p>
+            <span>{props.user.username} · project deep dive practice</span>
+          </div>
+          {props.activeInterview && props.activeInterview.status !== "finished" ? (
+            <button className="secondary-button" onClick={props.finishActiveInterview} type="button" disabled={props.working}>
+              {props.working ? <Loader2 className="spin" size={16} /> : <CheckCircle2 size={16} />}
+              Finish
+            </button>
+          ) : null}
+        </header>
+
+        {props.error ? <div className="chat-error">{props.error}</div> : null}
+
+        {!props.activeInterview ? (
+          <ProfileForm
+            canStart={props.canStart}
+            profile={props.profile}
+            profileAttachments={props.profileAttachments}
+            removeProfileAttachment={props.removeProfileAttachment}
+            addProfileAttachments={props.addProfileAttachments}
+            setProfile={props.setProfile}
+            startInterview={props.startInterview}
+            uploadError={props.uploadError}
+            working={props.working}
+          />
+        ) : (
+          <InterviewRoom
+            activeInterview={props.activeInterview}
+            activeTurn={props.activeTurn}
+            answer={props.answer}
+            answeredTurns={props.answeredTurns}
+            setAnswer={props.setAnswer}
+            submitAnswer={props.submitAnswer}
+            working={props.working}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProfileForm(props: {
+  canStart: boolean;
+  profile: CandidateProfile;
+  profileAttachments: Attachment[];
+  removeProfileAttachment: (id: number) => void;
+  addProfileAttachments: (files: File[]) => void;
+  setProfile: (value: CandidateProfile) => void;
+  startInterview: (event: FormEvent<HTMLFormElement>) => void;
+  uploadError: string;
+  working: boolean;
+}) {
+  function update(key: keyof CandidateProfile, value: string) {
+    props.setProfile({ ...props.profile, [key]: value });
+  }
+
+  return (
+    <form className="profile-form" onSubmit={props.startInterview}>
+      <div className="page-header compact">
+        <div>
+          <p className="eyebrow">Candidate profile</p>
+          <h1>Start a focused mock interview</h1>
+          <p className="muted">
+            The interviewer uses this context to ask one question at a time and push on weak spots.
+          </p>
+        </div>
+      </div>
+
+      <label>
+        Self-introduction
+        <textarea
+          value={props.profile.self_introduction}
+          onChange={(event) => update("self_introduction", event.target.value)}
+          placeholder="CS/AI background, current year, research interests..."
+          rows={4}
+          required
+        />
+      </label>
+      <label>
+        Project or research experience
+        <textarea
+          value={props.profile.project_experience}
+          onChange={(event) => update("project_experience", event.target.value)}
+          placeholder="Problem, method, your contribution, results, and evaluation..."
+          rows={6}
+          required
+        />
+      </label>
+      <div className="form-grid">
+        <label>
+          Target direction
+          <input
+            value={props.profile.target_direction}
+            onChange={(event) => update("target_direction", event.target.value)}
+            placeholder="Research internship, lab admission, graduate interview..."
+            required
+          />
+        </label>
+        <label>
+          Weak points
+          <input
+            value={props.profile.weak_points}
+            onChange={(event) => update("weak_points", event.target.value)}
+            placeholder="Metrics, motivation, technical depth..."
+          />
+        </label>
+      </div>
+      <section className="attachment-dropzone" aria-label="Candidate materials">
+        <label className="file-picker">
+          <FileText size={18} />
+          <span>
+            Add notes, diagrams, or PDF pages
+            <small>TXT, MD, JSON, CSV, PNG, JPEG, WebP, GIF, PDF</small>
+          </span>
+          <input
+            type="file"
+            multiple
+            accept=".txt,.md,.json,.csv,.log,image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf"
+            onChange={(event) => {
+              props.addProfileAttachments(Array.from(event.target.files ?? []));
+              event.currentTarget.value = "";
+            }}
+            disabled={props.working}
+          />
+        </label>
+        {props.uploadError ? <p className="form-error">{props.uploadError}</p> : null}
+        {props.profileAttachments.length > 0 ? (
+          <div className="attachment-chip-list">
+            {props.profileAttachments.map((attachment) => (
+              <div className="attachment-chip" key={attachment.id}>
+                <FileText size={15} />
+                <span>
+                  <strong>{attachment.name}</strong>
+                  <small>{attachment.kind.toUpperCase()} · {formatBytes(attachment.size)}</small>
+                </span>
+                <button
+                  type="button"
+                  title="Remove attachment"
+                  onClick={() => props.removeProfileAttachment(attachment.id)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+      <button className="primary-button wide" type="submit" disabled={!props.canStart || props.working}>
+        {props.working ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
+        Start interview
+      </button>
+    </form>
+  );
+}
+
+function InterviewRoom(props: {
+  activeInterview: Interview;
+  activeTurn: Interview["turns"][number] | null;
+  answer: string;
+  answeredTurns: Interview["turns"];
+  setAnswer: (value: string) => void;
+  submitAnswer: (event: FormEvent<HTMLFormElement>) => void;
+  working: boolean;
+}) {
+  const [visibleTurnIndex, setVisibleTurnIndex] = useState(0);
+  const visibleTurn = props.answeredTurns[visibleTurnIndex] ?? null;
+
+  useEffect(() => {
+    setVisibleTurnIndex((current) => Math.min(current, Math.max(props.answeredTurns.length - 1, 0)));
+  }, [props.answeredTurns.length]);
+
+  return (
+    <div className="interview-room">
+      <section className="question-panel">
+        <div className="interviewer-mark">
+          <Bot size={22} />
+        </div>
+        <div>
+          <p className="eyebrow">Current question</p>
+          <h2>{props.activeTurn?.question ?? "Interview complete"}</h2>
+        </div>
+      </section>
+
+      {props.activeInterview.status !== "finished" && props.activeTurn ? (
+        <form className="answer-form" onSubmit={props.submitAnswer}>
+          <textarea
+            value={props.answer}
+            onChange={(event) => props.setAnswer(event.target.value)}
+            placeholder="Answer as you would in an interview. Include your role, method, evidence, and tradeoffs."
+            rows={6}
+          />
+          <button className="send-button text" disabled={!props.answer.trim() || props.working} type="submit">
+            {props.working ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
+            Submit answer
+          </button>
+        </form>
+      ) : null}
+
+      {props.activeInterview.final_report ? (
+        <ReportCard report={props.activeInterview.final_report} />
+      ) : null}
+
+      {visibleTurn ? (
+        <section className="qa-review-panel" aria-label="Answered questions">
+          <div className="qa-review-header">
+            <div>
+              <p className="eyebrow">Answered Q&A</p>
+              <h3>Question {visibleTurn.turn_index} of {props.answeredTurns.length}</h3>
+            </div>
+            <div className="pager-controls">
+              <button
+                type="button"
+                title="Previous answer"
+                disabled={visibleTurnIndex === 0}
+                onClick={() => setVisibleTurnIndex((current) => Math.max(current - 1, 0))}
+              >
+                <ChevronLeft size={17} />
+              </button>
+              <button
+                type="button"
+                title="Next answer"
+                disabled={visibleTurnIndex >= props.answeredTurns.length - 1}
+                onClick={() =>
+                  setVisibleTurnIndex((current) =>
+                    Math.min(current + 1, props.answeredTurns.length - 1),
+                  )
+                }
+              >
+                <ChevronRight size={17} />
+              </button>
+            </div>
+          </div>
+          <article className="qa-review-body">
+            <div className="qa-copy">
+              <div className="turn-question">
+                <UserRound size={17} />
+                <strong>{visibleTurn.question}</strong>
+              </div>
+              <p className="answer-text">{visibleTurn.answer}</p>
+            </div>
+            {visibleTurn.feedback ? <FeedbackCard feedback={visibleTurn.feedback} /> : null}
+          </article>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function FeedbackCard({ feedback }: { feedback: NonNullable<Interview["turns"][number]["feedback"]> }) {
+  return (
+    <div className="feedback-card">
+      <div className="score-row">
+        <div className="score-pill">{feedback.score ?? "?"}/10</div>
+      </div>
+      <div className="feedback-comparison">
+        <ListBlock title="Strengths" items={feedback.strengths ?? []} />
+        <ListBlock title="Weaknesses" items={feedback.weaknesses ?? []} />
+      </div>
+      {feedback.advice ? (
+        <div className="advice-row">
+          <h3>Next step</h3>
+          <p>{feedback.advice}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ReportCard({ report }: { report: NonNullable<Interview["final_report"]> }) {
+  return (
+    <section className="report-card">
+      <div>
+        <p className="eyebrow">Final report</p>
+        <h2>{report.overall_score ?? "?"}/10 overall</h2>
+        <p>{report.summary}</p>
+      </div>
+      <ListBlock title="Strengths" items={report.strengths ?? []} />
+      <ListBlock title="Weaknesses" items={report.weaknesses ?? []} />
+      <ListBlock title="Next steps" items={report.next_steps ?? []} />
+    </section>
+  );
+}
+
+function ListBlock({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="list-block">
+      <h3>{title}</h3>
+      <ul>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FaceWorkspace() {
+  return (
+    <div className="page-view">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Experimental</p>
+          <h1>Face-to-Face Interview</h1>
+          <p className="muted">
+            Reserved for a Volcengine-powered real-time digital interviewer experiment. The text
+            interview remains the stable MVP path.
+          </p>
+        </div>
+      </header>
+      <section className="face-grid">
+        <div className="upload-tile">
+          <ImagePlus size={28} />
+          <h2>Interviewer image</h2>
+          <p>Upload entry is planned for idle, listening, and speaking visual states.</p>
+        </div>
+        <div className="upload-tile">
+          <FileAudio size={28} />
+          <h2>Reference audio</h2>
+          <p>Voice cloning and real-time speech are intentionally not enabled in this MVP.</p>
+        </div>
+        <div className="state-strip">
+          <span>Ready</span>
+          <span>Listening</span>
+          <span>Speaking</span>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SettingsWorkspace(props: {
+  refreshStatus: () => void;
+  runtimeStatus: RuntimeStatus | null;
+  settingsError: string;
+  setThemeMode: (mode: ThemeMode) => void;
+  themeMode: ThemeMode;
+}) {
+  return (
+    <div className="page-view">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Workspace</p>
+          <h1>Settings</h1>
+        </div>
+        <button className="secondary-button" onClick={props.refreshStatus} type="button">
+          <RefreshCw size={17} />
+          Refresh
+        </button>
+      </header>
+
+      <section className="settings-grid">
+        <div className="panel">
+          <h2>Theme</h2>
+          <div className="segmented" role="radiogroup" aria-label="Theme mode">
+            <ThemeButton active={props.themeMode === "system"} onClick={() => props.setThemeMode("system")}>
+              <Settings size={15} />
+              System
+            </ThemeButton>
+            <ThemeButton active={props.themeMode === "light"} onClick={() => props.setThemeMode("light")}>
+              <Sun size={15} />
+              Light
+            </ThemeButton>
+            <ThemeButton active={props.themeMode === "dark"} onClick={() => props.setThemeMode("dark")}>
+              <Moon size={15} />
+              Dark
+            </ThemeButton>
+          </div>
+        </div>
+
+        <div className="panel">
+          <h2>Runtime</h2>
+          {props.settingsError ? <p className="form-error">{props.settingsError}</p> : null}
+          <dl className="status-table">
+            <StatusItem label="Environment" value={props.runtimeStatus?.app_env ?? "unknown"} />
+            <StatusItem label="Database" value={props.runtimeStatus?.database ?? "unknown"} />
+            <StatusItem label="Upload limit" value={formatBytes(props.runtimeStatus?.upload_limit_bytes)} />
+            <StatusItem
+              label="Attachments/message"
+              value={String(props.runtimeStatus?.max_attachments_per_message ?? "unknown")}
+            />
+            <StatusItem label="Proxy env" value={props.runtimeStatus?.proxy_enabled ? "enabled" : "not detected"} />
+            <StatusItem label="Deep model" value={props.runtimeStatus?.model_strategy?.deep ?? "configured server-side"} />
+            <StatusItem label="Fast model" value={props.runtimeStatus?.model_strategy?.fast ?? "configured server-side"} />
+            <StatusItem label="Feedback model" value={props.runtimeStatus?.model_strategy?.feedback ?? "configured server-side"} />
+            <StatusItem
+              label="PDF page limit"
+              value={String(props.runtimeStatus?.max_pdf_pages_per_attachment ?? "unknown")}
+            />
+          </dl>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ThemeButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button className={active ? "active" : ""} onClick={onClick} type="button">
+      {children}
+    </button>
+  );
+}
+
+function StatusItem({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </>
+  );
+}
+
+function formatBytes(value?: number) {
+  if (!value) return "unknown";
+  if (value >= 1024 * 1024) return `${Math.round(value / 1024 / 1024)}MB`;
+  return `${Math.round(value / 1024)}KB`;
 }

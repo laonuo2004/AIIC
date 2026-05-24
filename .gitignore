@@ -210,6 +210,7 @@ tempCodeRunnerFile.py
 .ruff_cache/
 
 # AIIC project artifacts
+.superpowers/
 node_modules/
 .next/
 frontend/.next/
@@ -232,3 +233,7 @@ __marimo__/
 # Demo
 demo/*.prproj
 demo/Adobe*
+
+# Other
+
+attachments/tmp/

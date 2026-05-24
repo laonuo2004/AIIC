@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -20,6 +20,19 @@ class User(Base):
 
     sessions: Mapped[list["SessionToken"]] = relationship(back_populates="user")
     conversations: Mapped[list["Conversation"]] = relationship(back_populates="user")
+    interview_sessions: Mapped[list["InterviewSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    openrouter_credential: Mapped["OpenRouterCredential | None"] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    enabled_openrouter_models: Mapped[list["EnabledOpenRouterModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    attachments: Mapped[list["Attachment"]] = relationship(back_populates="user")
 
 
 class SessionToken(Base):
@@ -61,3 +74,140 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
+    attachments: Mapped[list["MessageAttachment"]] = relationship(
+        back_populates="message",
+        cascade="all, delete-orphan",
+    )
+
+
+class OpenRouterCredential(Base):
+    __tablename__ = "openrouter_credentials"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
+    encrypted_api_key: Mapped[str] = mapped_column(Text, nullable=False)
+    key_hint: Mapped[str] = mapped_column(String(8), nullable=False)
+    selected_model_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    user: Mapped[User] = relationship(back_populates="openrouter_credential")
+
+
+class OpenRouterModel(Base):
+    __tablename__ = "openrouter_models"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    input_modalities_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    output_modalities_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    context_length: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    pricing_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class EnabledOpenRouterModel(Base):
+    __tablename__ = "enabled_openrouter_models"
+    __table_args__ = (UniqueConstraint("user_id", "model_id", name="uq_enabled_openrouter_model"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    model_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    user: Mapped[User] = relationship(back_populates="enabled_openrouter_models")
+
+
+class Attachment(Base):
+    __tablename__ = "attachments"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    original_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    stored_path: Mapped[str] = mapped_column(Text, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    user: Mapped[User] = relationship(back_populates="attachments")
+    messages: Mapped[list["MessageAttachment"]] = relationship(back_populates="attachment")
+    interviews: Mapped[list["InterviewAttachment"]] = relationship(back_populates="attachment")
+
+
+class MessageAttachment(Base):
+    __tablename__ = "message_attachments"
+    __table_args__ = (
+        UniqueConstraint("message_id", "attachment_id", name="uq_message_attachment"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    message_id: Mapped[int] = mapped_column(ForeignKey("messages.id"), nullable=False)
+    attachment_id: Mapped[int] = mapped_column(ForeignKey("attachments.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    message: Mapped[Message] = relationship(back_populates="attachments")
+    attachment: Mapped[Attachment] = relationship(back_populates="messages")
+
+
+class InterviewAttachment(Base):
+    __tablename__ = "interview_attachments"
+    __table_args__ = (
+        UniqueConstraint("interview_id", "attachment_id", name="uq_interview_attachment"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    interview_id: Mapped[int] = mapped_column(ForeignKey("interview_sessions.id"), nullable=False)
+    attachment_id: Mapped[int] = mapped_column(ForeignKey("attachments.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    interview: Mapped["InterviewSession"] = relationship(back_populates="attachments")
+    attachment: Mapped[Attachment] = relationship(back_populates="interviews")
+
+
+class InterviewSession(Base):
+    __tablename__ = "interview_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="active")
+    profile_json: Mapped[str] = mapped_column(Text, nullable=False)
+    target_direction: Mapped[str] = mapped_column(String(255), nullable=False)
+    interview_type: Mapped[str] = mapped_column(String(40), nullable=False, default="text")
+    weak_points: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    final_report_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="interview_sessions")
+    turns: Mapped[list["InterviewTurn"]] = relationship(
+        back_populates="interview",
+        cascade="all, delete-orphan",
+        order_by="InterviewTurn.turn_index",
+    )
+    attachments: Mapped[list["InterviewAttachment"]] = relationship(
+        back_populates="interview",
+        cascade="all, delete-orphan",
+    )
+
+
+class InterviewTurn(Base):
+    __tablename__ = "interview_turns"
+    __table_args__ = (
+        UniqueConstraint("interview_id", "turn_index", name="uq_interview_turn_index"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    interview_id: Mapped[int] = mapped_column(ForeignKey("interview_sessions.id"), nullable=False)
+    turn_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    feedback_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    model_used: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    interview: Mapped[InterviewSession] = relationship(back_populates="turns")

@@ -13,9 +13,17 @@ class Settings(BaseSettings):
 
     litellm_model: str = "openrouter/qwen/qwen3.6-flash"
     litellm_fallback_model: str | None = "openrouter/qwen/qwen3.6-flash"
+    interview_deep_model: str = "openrouter/qwen/qwen3.6-plus"
+    interview_fast_model: str = "openrouter/qwen/qwen3.6-flash"
+    interview_feedback_model: str = "openrouter/qwen/qwen3.6-plus"
     litellm_temperature: float = 0.2
     litellm_timeout_seconds: int = 60
     openrouter_api_key: str | None = Field(default=None, repr=False)
+    openrouter_http_proxy: str | None = Field(default=None, repr=False)
+    upload_dir: str = "./data/uploads"
+    max_upload_bytes: int = 5 * 1024 * 1024
+    max_attachments_per_message: int = 4
+    max_pdf_pages_per_attachment: int = 12
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
