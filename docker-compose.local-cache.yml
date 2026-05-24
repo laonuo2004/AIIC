@@ -1,0 +1,6 @@
+services:
+  backend:
+    build:
+      dockerfile: Dockerfile.local-cache
+      args:
+        PREVIOUS_BACKEND_IMAGE: ${PREVIOUS_BACKEND_IMAGE:-aiic-project-backend:latest}

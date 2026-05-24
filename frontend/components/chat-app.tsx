@@ -44,14 +44,12 @@ import {
   createInterview,
   faceWebSocketUrl,
   finishInterview,
-  generateFaceVideos,
   getInterview,
   getMe,
   getRuntimeStatus,
   listInterviews,
   login,
   logout,
-  pollFaceVideos,
   register,
   submitInterviewAnswer,
   uploadAttachments,
@@ -62,6 +60,9 @@ type View = "text" | "face" | "settings";
 type ThemeMode = "system" | "light" | "dark";
 
 const THEME_KEY = "researchmocker-theme-mode";
+const SHOW_FACE_DEBUG_ERRORS =
+  process.env.NODE_ENV !== "production" ||
+  process.env.NEXT_PUBLIC_SHOW_FACE_DEBUG_ERRORS === "true";
 
 const EMPTY_PROFILE: CandidateProfile = {
   self_introduction: "",
@@ -141,7 +142,7 @@ export function ChatApp() {
       setRuntimeStatus(status);
       setSettingsError("");
     } catch (error) {
-      setSettingsError(error instanceof Error ? error.message : "Runtime status unavailable");
+      setSettingsError(error instanceof Error ? error.message : "暂时无法读取运行状态。");
     }
   }
 
@@ -539,7 +540,7 @@ function ProfileForm(props: {
           <p className="eyebrow">面试资料</p>
           <h1>开始项目模拟面试</h1>
           <p className="muted">
-            接下来会连续追问 2-3 轮，重点看实现细节、个人贡献和实验依据。
+            接下来会连续追问，最多 5 题；你也可以随时结束并生成复盘。
           </p>
         </div>
       </div>
@@ -799,14 +800,13 @@ function FaceWorkspace() {
   const [asset, setAsset] = useState<FaceAsset | null>(null);
   const [session, setSession] = useState<FaceSession | null>(null);
   const [stage, setStage] = useState<FaceStage>("setup");
-  const [statusLines, setStatusLines] = useState<string[]>(["上传图片和音频后开始。"]);
-  const [transcript, setTranscript] = useState("");
-  const [assistantText, setAssistantText] = useState("");
+  const [statusMessage, setStatusMessage] = useState("上传图片和参考音频后开始。");
   const [error, setError] = useState("");
   const [working, setWorking] = useState(false);
   const [playBlocked, setPlayBlocked] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -824,6 +824,8 @@ function FaceWorkspace() {
   useEffect(() => {
     return () => {
       socketRef.current?.close();
+      audioProcessorRef.current?.disconnect();
+      void audioContextRef.current?.close();
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
@@ -833,28 +835,19 @@ function FaceWorkspace() {
     setPlayBlocked(false);
     void videoRef.current.play().catch(() => {
       setPlayBlocked(true);
-      pushStatus("口型视频已生成；如果浏览器阻止自动播放，请手动点击播放。");
+      updateStatus("口型视频已生成；如果浏览器阻止自动播放，请手动点击播放。");
     });
   }, [stage, visualUrl]);
 
-  function pushStatus(line: string) {
-    setStatusLines((current) => [line, ...current].slice(0, 5));
+  function updateStatus(message: string) {
+    setStatusMessage(message);
   }
 
-  async function waitForPreparedVideos(assetId: number) {
-    const deadline = Date.now() + 120_000;
-    let current = await pollFaceVideos(assetId);
-    setAsset(current);
-    while (current.status === "video_pending" && Date.now() < deadline) {
-      pushStatus("等待 Ready 和 Listening 视频生成完成。");
-      await new Promise((resolve) => window.setTimeout(resolve, 3000));
-      current = await pollFaceVideos(assetId);
-      setAsset(current);
-    }
-    if (current.status !== "video_ready") {
-      throw new Error(current.error_message || "Ready/Listening 视频生成超时。");
-    }
-    return current;
+  function showFriendlyFaceError(message: string, detail?: unknown) {
+    setStage("error");
+    const detailMessage = detail instanceof Error ? detail.message : typeof detail === "string" ? detail : "";
+    setError(SHOW_FACE_DEBUG_ERRORS && detailMessage ? `${message}\n${detailMessage}` : message);
+    updateStatus("面试官暂时没有准备好。");
   }
 
   async function prepareAsset(event: FormEvent<HTMLFormElement>) {
@@ -862,30 +855,20 @@ function FaceWorkspace() {
     if (!imageFile || !audioFile || working) return;
     setWorking(true);
     setError("");
-    setTranscript("");
-    setAssistantText("");
     try {
       setStage("preparing_voice");
-      pushStatus("正在上传面试官材料。");
+      updateStatus("正在上传面试官材料。");
       const uploaded = await createFaceAsset(imageFile, audioFile);
       setAsset(uploaded);
-      pushStatus("正在用参考音频登记复刻声音。");
+      updateStatus("正在处理参考音频。");
       const voiceReady = await cloneFaceVoice(uploaded.id);
       setAsset(voiceReady);
-      setStage("generating_videos");
-      pushStatus("正在提交 OmniHuman Ready 和 Listening 视频任务。");
-      const videoPending = await generateFaceVideos(uploaded.id);
-      setAsset(videoPending);
-      pushStatus("正在等待 Ready 和 Listening 视频生成完成。");
-      const videoReady = await waitForPreparedVideos(uploaded.id);
-      pushStatus("Ready 和 Listening 视频已生成。");
-      const createdSession = await createFaceSession(videoReady.id);
+      updateStatus("面试官已准备好，可以开始说话。");
+      const createdSession = await createFaceSession(voiceReady.id);
       setSession(createdSession);
       setStage("ready");
-      pushStatus("实时语音会话已准备好。");
     } catch (prepareError) {
-      setStage("error");
-      setError(prepareError instanceof Error ? prepareError.message : "无法准备数字人面试。");
+      showFriendlyFaceError("生成失败。请更换一段更清晰的参考音频，或稍后重试。", prepareError);
     } finally {
       setWorking(false);
     }
@@ -903,34 +886,28 @@ function FaceWorkspace() {
     socket.onerror = () => {
       setStage("error");
       setError("实时语音连接失败。");
+      updateStatus("语音通道暂时不可用，请稍后重试。");
     };
     socket.onclose = () => {
-      if (stage !== "error") pushStatus("实时连接已关闭。");
+      if (stage !== "error") updateStatus("连接已结束。");
     };
     return socket;
   }
 
   function handleServerEvent(event: FaceServerEvent) {
     if (event.event === "session_started") {
-      pushStatus("服务会话已启动。");
-      return;
-    }
-    if (event.event === "asr_partial" || event.event === "asr_final") {
-      setTranscript(event.text);
-      return;
-    }
-    if (event.event === "assistant_text") {
-      setAssistantText(event.text);
+      updateStatus("语音通道已连接。");
       return;
     }
     if (event.event === "speaking_video_pending") {
       setStage("generating_speaking");
-      pushStatus("正在生成带口型的回复视频，暂时不能继续说话。");
+      updateStatus("正在生成面试官回复，请稍候。");
       return;
     }
     if (event.event === "assistant_audio") {
       playAssistantAudio(event.audio, event.mime ?? "audio/wav");
       setStage("speaking");
+      updateStatus("面试官正在回答。");
       return;
     }
     if (event.event === "speaking_video_ready") {
@@ -938,22 +915,23 @@ function FaceWorkspace() {
         current ? { ...current, latest_speaking_video_url: event.video_url } : current,
       );
       setStage("speaking");
+      updateStatus("面试官正在回答。");
       return;
     }
     if (event.event === "tts_ended" || event.event === "session_finished") {
       setStage("ready");
+      updateStatus("可以继续回答下一轮。");
       return;
     }
     if (event.event === "error") {
-      setStage("error");
-      setError(event.message);
+      showFriendlyFaceError("面试官回复失败。请稍后重试。", event.message);
     }
   }
 
   function playAssistantAudio(base64: string, mime: string) {
     const audio = new Audio(`data:${mime};base64,${base64}`);
     audio.onended = () => setStage("ready");
-    void audio.play().catch(() => pushStatus("面试官音频已就绪，但浏览器阻止了自动播放。"));
+    void audio.play().catch(() => updateStatus("面试官音频已就绪，请点击播放或重试。"));
   }
 
   async function startListening() {
@@ -963,44 +941,48 @@ function FaceWorkspace() {
       const socket = ensureSocket();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      recorder.ondataavailable = async (event) => {
-        if (event.data.size === 0 || socket.readyState !== WebSocket.OPEN) return;
-        socket.send(JSON.stringify({ event: "audio_chunk", audio: await blobToBase64(event.data) }));
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      audioProcessorRef.current = processor;
+      processor.onaudioprocess = (event) => {
+        if (socket.readyState !== WebSocket.OPEN) return;
+        const channel = event.inputBuffer.getChannelData(0);
+        socket.send(
+          JSON.stringify({
+            event: "audio_chunk",
+            audio: pcm16Base64(channel, audioContext.sampleRate, 16000),
+          }),
+        );
       };
-      recorder.start(500);
+      source.connect(processor);
+      processor.connect(audioContext.destination);
       setStage("listening");
-      pushStatus("正在听你回答。说完后点击停止。");
+      updateStatus("正在听你回答。说完后点击停止。");
     } catch (listenError) {
-      setStage("error");
-      setError(
-        listenError instanceof Error
-          ? listenError.message
-          : "无法访问麦克风。浏览器的 HTTPS 规则可能会限制 HTTP 演示。",
-      );
+      showFriendlyFaceError("无法访问麦克风。请检查浏览器权限后重试。", listenError);
     }
   }
 
   function stopListening() {
-    mediaRecorderRef.current?.stop();
-    mediaRecorderRef.current = null;
+    audioProcessorRef.current?.disconnect();
+    audioProcessorRef.current = null;
+    void audioContextRef.current?.close();
+    audioContextRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     socketRef.current?.send(JSON.stringify({ event: "end_asr" }));
     setStage("ready");
-    pushStatus("回答音频已发送。");
+    updateStatus("回答已发送，等待面试官回复。");
   }
 
   return (
     <div className="page-view">
       <header className="page-header">
         <div>
-          <p className="eyebrow">实验功能</p>
           <h1>数字人面试</h1>
-          <p className="muted">
-            按住说话进行实时语音问答，可选接入 OmniHuman 视频增强。稳定主流程仍是模拟面试。
-          </p>
+          <p className="muted">上传面试官图片和参考音频，生成一个可语音互动的面试官。</p>
         </div>
       </header>
       <section className="face-grid">
@@ -1028,7 +1010,6 @@ function FaceWorkspace() {
             {working ? <Loader2 className="spin" size={17} /> : <Sparkles size={17} />}
             生成面试官
           </button>
-          {error ? <p className="form-error">{error}</p> : null}
         </form>
 
         <section className="panel face-stage-panel">
@@ -1084,35 +1065,11 @@ function FaceWorkspace() {
               </button>
             )}
           </div>
-          <div className="face-transcript-grid">
-            <div>
-              <h3>候选人</h3>
-              <p>{transcript || "麦克风识别文本会显示在这里。"}</p>
-            </div>
-            <div>
-              <h3>面试官</h3>
-              <p>{assistantText || "面试官的实时回复会显示在这里。"}</p>
-            </div>
-          </div>
         </section>
 
-        <section className="state-strip face-status-strip">
-          {statusLines.map((line) => (
-            <span key={line}>{line}</span>
-          ))}
-        </section>
-        <section className="panel face-provider-panel">
-          <h2>服务状态</h2>
-          <dl className="status-table">
-            <dt>材料</dt>
-            <dd>{asset ? `#${asset.id} ${asset.status}` : "未生成"}</dd>
-            <dt>声音</dt>
-            <dd>{asset?.speaker_id ? "声音复刻已登记" : "等待中"}</dd>
-            <dt>视频</dt>
-            <dd>{asset?.error_message || asset?.provider_status || "可选"}</dd>
-            <dt>会话</dt>
-            <dd>{session ? `#${session.id} ${session.status}` : "未开始"}</dd>
-          </dl>
+        <section className="face-live-status" aria-live="polite">
+          <StatusPill stage={stage} />
+          <p>{error || statusMessage}</p>
         </section>
       </section>
     </div>
@@ -1148,13 +1105,21 @@ function StatusPill({ stage }: { stage: FaceStage }) {
   );
 }
 
-function blobToBase64(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(",", 2)[1] ?? "");
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
+function pcm16Base64(input: Float32Array, inputSampleRate: number, outputSampleRate: number) {
+  const ratio = inputSampleRate / outputSampleRate;
+  const outputLength = Math.floor(input.length / ratio);
+  const pcm = new Int16Array(outputLength);
+  for (let index = 0; index < outputLength; index += 1) {
+    const sourceIndex = Math.floor(index * ratio);
+    const sample = Math.max(-1, Math.min(1, input[sourceIndex] ?? 0));
+    pcm[index] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+  }
+  const bytes = new Uint8Array(pcm.buffer);
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 1) {
+    binary += String.fromCharCode(bytes[index]);
+  }
+  return btoa(binary);
 }
 
 function SettingsWorkspace(props: {
@@ -1168,52 +1133,52 @@ function SettingsWorkspace(props: {
     <div className="page-view">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Workspace</p>
-          <h1>Settings</h1>
+          <p className="eyebrow">工作区</p>
+          <h1>设置</h1>
         </div>
         <button className="secondary-button" onClick={props.refreshStatus} type="button">
           <RefreshCw size={17} />
-          Refresh
+          刷新状态
         </button>
       </header>
 
       <section className="settings-grid">
         <div className="panel">
-          <h2>Theme</h2>
-          <div className="segmented" role="radiogroup" aria-label="Theme mode">
+          <h2>显示模式</h2>
+          <div className="segmented" role="radiogroup" aria-label="显示模式">
             <ThemeButton active={props.themeMode === "system"} onClick={() => props.setThemeMode("system")}>
               <Settings size={15} />
-              System
+              跟随系统
             </ThemeButton>
             <ThemeButton active={props.themeMode === "light"} onClick={() => props.setThemeMode("light")}>
               <Sun size={15} />
-              Light
+              浅色
             </ThemeButton>
             <ThemeButton active={props.themeMode === "dark"} onClick={() => props.setThemeMode("dark")}>
               <Moon size={15} />
-              Dark
+              深色
             </ThemeButton>
           </div>
         </div>
 
         <div className="panel">
-          <h2>Runtime</h2>
+          <h2>运行状态</h2>
           {props.settingsError ? <p className="form-error">{props.settingsError}</p> : null}
           <dl className="status-table">
-            <StatusItem label="Environment" value={props.runtimeStatus?.app_env ?? "unknown"} />
-            <StatusItem label="Database" value={props.runtimeStatus?.database ?? "unknown"} />
-            <StatusItem label="Upload limit" value={formatBytes(props.runtimeStatus?.upload_limit_bytes)} />
+            <StatusItem label="当前环境" value={formatRuntimeText(props.runtimeStatus?.app_env)} />
+            <StatusItem label="数据库连接" value={formatRuntimeText(props.runtimeStatus?.database)} />
+            <StatusItem label="单次上传上限" value={formatBytes(props.runtimeStatus?.upload_limit_bytes)} />
             <StatusItem
-              label="Attachments/message"
-              value={String(props.runtimeStatus?.max_attachments_per_message ?? "unknown")}
+              label="每次最多上传"
+              value={formatCount(props.runtimeStatus?.max_attachments_per_message, "个材料")}
             />
-            <StatusItem label="Proxy env" value={props.runtimeStatus?.proxy_enabled ? "enabled" : "not detected"} />
-            <StatusItem label="Deep model" value={props.runtimeStatus?.model_strategy?.deep ?? "configured server-side"} />
-            <StatusItem label="Fast model" value={props.runtimeStatus?.model_strategy?.fast ?? "configured server-side"} />
-            <StatusItem label="Feedback model" value={props.runtimeStatus?.model_strategy?.feedback ?? "configured server-side"} />
+            <StatusItem label="代理环境" value={props.runtimeStatus?.proxy_enabled ? "已启用" : "未检测到"} />
+            <StatusItem label="深度分析模型" value={props.runtimeStatus?.model_strategy?.deep ?? "由服务端配置"} />
+            <StatusItem label="追问生成模型" value={props.runtimeStatus?.model_strategy?.fast ?? "由服务端配置"} />
+            <StatusItem label="反馈复盘模型" value={props.runtimeStatus?.model_strategy?.feedback ?? "由服务端配置"} />
             <StatusItem
-              label="PDF page limit"
-              value={String(props.runtimeStatus?.max_pdf_pages_per_attachment ?? "unknown")}
+              label="PDF 读取页数"
+              value={formatCount(props.runtimeStatus?.max_pdf_pages_per_attachment, "页")}
             />
           </dl>
         </div>
@@ -1248,7 +1213,23 @@ function StatusItem({ label, value }: { label: string; value: string }) {
 }
 
 function formatBytes(value?: number) {
-  if (!value) return "unknown";
+  if (!value) return "未知";
   if (value >= 1024 * 1024) return `${Math.round(value / 1024 / 1024)}MB`;
   return `${Math.round(value / 1024)}KB`;
+}
+
+function formatCount(value: number | undefined, unit: string) {
+  if (typeof value !== "number") return "未知";
+  return `${value} ${unit}`;
+}
+
+function formatRuntimeText(value?: string) {
+  if (!value) return "未知";
+  const labels: Record<string, string> = {
+    development: "开发环境",
+    production: "生产环境",
+    test: "测试环境",
+    ok: "正常",
+  };
+  return labels[value] ?? value;
 }

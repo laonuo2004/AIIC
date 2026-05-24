@@ -228,9 +228,9 @@ Current P0.5 completion snapshot:
 
 Current face-to-face experiment snapshot:
 
-- Backend face APIs are implemented for authenticated asset upload, public provider-readable media tokens, voice clone preparation, OmniHuman Ready/Listening job submission and polling, session creation, and a browser-to-backend realtime WebSocket contract. Ready/Listening generation is submitted sequentially so the free-trial OmniHuman concurrency limit of 1 is not exhausted by one preparation flow.
+- Backend face APIs are implemented for authenticated asset upload, public provider-readable media tokens, voice clone preparation, optional OmniHuman Ready/Listening job submission and polling, session creation, and a browser-to-backend realtime WebSocket contract. Ready/Listening generation remains available as an explicit backend capability, but the default frontend preparation path does not call it because provider-side pre-audio risk checks can reject generic idle/background audio.
 - Speaking replies use the realtime speech audio as the driver for a per-turn OmniHuman speaking video. The backend waits for the generated video, sends `speaking_video_ready` on success, and falls back to `assistant_audio` with a visible error on provider failure or timeout.
-- Frontend Face-to-Face page now supports interviewer image/reference audio setup, voice/video preparation states, push-to-talk microphone streaming, provider status display, transcript/assistant text panes, Ready/Listening looped video states, generated Speaking video playback, and honest audio fallback.
+- Frontend Face-to-Face page now supports interviewer image/reference audio setup, voice preparation, push-to-talk microphone streaming, provider status display, Ready/Listening static-image states, generated Speaking video playback, and honest audio fallback. It does not render ASR transcript or assistant text in the face-to-face flow.
 - Volcengine realtime video is not represented as true streaming video. The implemented video path is asynchronous generation followed by synchronized playback.
 - Provider credentials remain backend-only `.env` values. Normal users do not configure raw model IDs or API keys.
 - Public HTTP microphone access may be browser-limited outside localhost; HTTPS or controlled browser permissions may be needed for a full public smoke session.

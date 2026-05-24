@@ -148,11 +148,7 @@ export type FaceSession = {
 
 export type FaceServerEvent =
   | { event: "session_started"; speaker_id?: string; resource_id?: string }
-  | { event: "asr_partial"; text: string }
-  | { event: "asr_final"; text: string }
-  | { event: "assistant_text"; text: string }
   | { event: "assistant_audio"; audio: string; mime?: string }
-  | { event: "tts_started" }
   | { event: "tts_ended" }
   | { event: "speaking_video_pending" }
   | { event: "speaking_video_ready"; video_url: string }

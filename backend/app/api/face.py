@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, WebSocket, status
 from fastapi.responses import FileResponse
 from sqlalchemy import or_, select
+from starlette.websockets import WebSocketDisconnect
 
 from app.api.deps import DbSession, current_user
 from app.core.config import get_settings
@@ -54,6 +55,19 @@ def _public_media_url(token: str, path: str | None = None) -> str:
     if settings.public_base_url:
         return f"{settings.public_base_url.rstrip('/')}{path}"
     return path
+
+
+def _generated_audio_media_type(path: Path) -> str:
+    suffix = path.suffix.lower()
+    if suffix == ".mp3":
+        return "audio/mpeg"
+    if suffix == ".ogg":
+        return "audio/ogg"
+    if suffix == ".m4a":
+        return "audio/mp4"
+    if suffix == ".aac":
+        return "audio/aac"
+    return "audio/wav"
 
 
 def _asset_response(asset: FaceAsset, request: Request) -> FaceAssetResponse:
@@ -312,15 +326,16 @@ def poll_face_videos(
                 _public_url(request, job.audio_media_token),
             )
         except RuntimeError as exc:
+            message = _stage_error(job.kind, str(exc))
             job.status = "error"
-            job.error_message = str(exc)
+            job.error_message = message
             asset.status = "video_error"
             asset.provider_status = "video_error"
-            asset.error_message = str(exc)
+            asset.error_message = message
             job.updated_at = now
             asset.updated_at = now
             db.commit()
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=message) from exc
         job.status = result.get("status", "pending")
         job.provider_task_id = result.get("provider_task_id")
         job.provider_request_id = result.get("provider_request_id")
@@ -403,7 +418,7 @@ def get_face_media(token: str, db: DbSession) -> FileResponse:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Media not found",
         ) from None
-    return FileResponse(str(generated_path), media_type="audio/wav")
+    return FileResponse(str(generated_path), media_type=_generated_audio_media_type(generated_path))
 
 
 def _store_speaking_audio(asset: FaceAsset, encoded_audio: str, mime_type: str) -> tuple[str, str]:
@@ -421,6 +436,12 @@ def _store_speaking_audio(asset: FaceAsset, encoded_audio: str, mime_type: str) 
     audio_path = generated_dir / f"{uuid4().hex}-speaking{suffix}"
     audio_path.write_bytes(audio_bytes)
     return str(audio_path), uuid4().hex
+
+
+def _stage_error(stage: str, message: str) -> str:
+    if message.startswith("stage="):
+        return message
+    return f"stage={stage}: {message}"
 
 
 async def _handle_assistant_audio(
@@ -443,6 +464,9 @@ async def _handle_assistant_audio(
             audio_path=audio_path,
             audio_media_token=audio_token,
         )
+        db.add(job)
+        db.commit()
+        db.refresh(job)
         result = submit_speaking_face_video(
             asset,
             _public_media_url(asset.image_media_token),
@@ -451,7 +475,6 @@ async def _handle_assistant_audio(
         job.status = result.get("status", "pending")
         job.provider_task_id = result.get("provider_task_id")
         job.provider_request_id = result.get("provider_request_id")
-        db.add(job)
         db.commit()
         db.refresh(job)
         await websocket.send_json({"event": "speaking_video_pending"})
@@ -465,12 +488,13 @@ async def _handle_assistant_audio(
         db.commit()
         await websocket.send_json({"event": "speaking_video_ready", "video_url": job.video_url})
     except (RuntimeError, TimeoutError) as exc:
+        message = _stage_error("speaking", str(exc))
         if "job" in locals():
             job.status = "error"
-            job.error_message = str(exc)
+            job.error_message = message
             job.updated_at = datetime.now(UTC)
             db.commit()
-        await websocket.send_json({"event": "error", "message": str(exc)})
+        await websocket.send_json({"event": "error", "message": message})
         await websocket.send_json(provider_event)
 
 
@@ -502,28 +526,50 @@ async def stream_face_session(websocket: WebSocket, session_id: int) -> None:
             await websocket.close(code=1011)
             return
         bridge = create_realtime_bridge(asset.speaker_id)
-        while True:
-            event = await websocket.receive_json()
-            event_name = event.get("event")
-            if event_name == "start_session":
-                started = await bridge.start()
-                session.status = "streaming"
-                session.updated_at = datetime.now(UTC)
-                db.commit()
-                await websocket.send_json(started)
-            elif event_name == "finish_session":
-                session.status = "finished"
-                session.finished_at = datetime.now(UTC)
-                session.updated_at = session.finished_at
-                db.commit()
-                await websocket.send_json({"event": "session_finished"})
-                await websocket.close()
-                return
-            else:
-                for provider_event in await bridge.receive_client_event(event):
-                    if provider_event.get("event") == "assistant_audio":
-                        await _handle_assistant_audio(websocket, db, asset, provider_event)
-                    else:
-                        await websocket.send_json(provider_event)
+        try:
+            while True:
+                event = await websocket.receive_json()
+                event_name = event.get("event")
+                if event_name == "start_session":
+                    try:
+                        started = await bridge.start()
+                    except (RuntimeError, VolcengineSetupError) as exc:
+                        await websocket.send_json({"event": "error", "message": str(exc)})
+                        return
+                    session.status = "streaming"
+                    session.updated_at = datetime.now(UTC)
+                    db.commit()
+                    await websocket.send_json(started)
+                elif event_name == "finish_session":
+                    session.status = "finished"
+                    session.finished_at = datetime.now(UTC)
+                    session.updated_at = session.finished_at
+                    db.commit()
+                    await websocket.send_json({"event": "session_finished"})
+                    await websocket.close()
+                    return
+                else:
+                    try:
+                        provider_events = await bridge.receive_client_event(event)
+                    except RuntimeError as exc:
+                        await websocket.send_json({"event": "error", "message": str(exc)})
+                        return
+                    for provider_event in provider_events:
+                        if provider_event.get("event") in {
+                            "asr_partial",
+                            "asr_final",
+                            "assistant_text",
+                        }:
+                            continue
+                        if provider_event.get("event") == "assistant_audio":
+                            await _handle_assistant_audio(websocket, db, asset, provider_event)
+                        else:
+                            await websocket.send_json(provider_event)
+        except WebSocketDisconnect:
+            return
+        finally:
+            close = getattr(bridge, "close", None)
+            if close is not None:
+                await close()
     finally:
         db.close()

@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     volcengine_speech_access_token: str | None = Field(default=None, repr=False)
     volcengine_speech_app_id: str | None = None
     volcengine_realtime_resource_id: str = "volc.speech.dialog"
+    volcengine_realtime_app_id: str | None = None
+    volcengine_realtime_access_token: str | None = Field(default=None, repr=False)
+    volcengine_realtime_app_key: str = "PlgvMymc7f3tQnJ6"
+    volcengine_realtime_model: str = "O"
+    volcengine_realtime_bot_name: str = "ResearchMocker"
+    volcengine_realtime_speaking_style: str = "严格、专业、简洁，像真实科研面试老师"
+    volcengine_realtime_opening: str = "请用一句话开始科研项目深挖面试。"
+    volcengine_realtime_ws_url: str = "wss://openspeech.bytedance.com/api/v3/realtime/dialogue"
+    volcengine_realtime_open_timeout_seconds: float = 10
+    volcengine_realtime_receive_timeout_seconds: float = 0.2
+    volcengine_realtime_response_timeout_seconds: float = 45
     volcengine_voice_clone_resource_id: str = "seed-icl-2.0"
     volcengine_voice_clone_speaker_id: str | None = None
     volcengine_omnihuman_access_key_id: str | None = Field(default=None, repr=False)
@@ -38,6 +49,7 @@ class Settings(BaseSettings):
     volcengine_omnihuman_poll_interval_seconds: float = 3
     volcengine_omnihuman_output_resolution: int = 720
     volcengine_omnihuman_fast_mode: bool = True
+    volcengine_omnihuman_idle_audio_path: str | None = "demo/背景音.mp3"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

@@ -736,6 +736,7 @@ textarea {
 
 .settings-grid,
 .face-grid {
+  align-items: stretch;
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
@@ -760,7 +761,8 @@ textarea {
 }
 
 .face-setup {
-  align-self: start;
+  align-content: start;
+  align-self: stretch;
   display: grid;
   gap: 14px;
 }
@@ -792,6 +794,7 @@ textarea {
 .face-stage-panel {
   display: grid;
   gap: 16px;
+  grid-template-rows: minmax(260px, 1fr) auto;
 }
 
 .face-visual {
@@ -869,43 +872,37 @@ textarea {
   color: var(--danger);
 }
 
-.face-transcript-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.face-transcript-grid div {
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  min-height: 128px;
-  padding: 14px;
-}
-
-.face-transcript-grid h3 {
-  font-size: 13px;
-  margin-bottom: 8px;
-}
-
-.face-transcript-grid p {
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.face-provider-panel {
-  grid-column: 1 / -1;
-}
-
+.face-live-status,
 .state-strip {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--shadow);
   color: var(--text);
+  grid-column: 1 / -1;
+}
+
+.face-live-status {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 14px 16px;
+}
+
+.face-live-status p {
+  color: var(--muted);
+  flex: 1;
+  line-height: 1.5;
+  margin: 0;
+  text-align: right;
+  white-space: pre-wrap;
+}
+
+.state-strip {
   display: grid;
   gap: 10px;
-  grid-column: 1 / -1;
   grid-template-columns: repeat(3, 1fr);
   padding: 12px;
 }
@@ -917,10 +914,6 @@ textarea {
   min-height: 52px;
   padding: 16px;
   text-align: center;
-}
-
-.face-status-strip {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .status-table {
@@ -1047,6 +1040,15 @@ textarea {
 
   .question-panel {
     grid-template-columns: 1fr;
+  }
+
+  .face-live-status {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .face-live-status p {
+    text-align: left;
   }
 
   .state-strip {
