@@ -56,7 +56,69 @@ export type RuntimeStatus = {
   max_attachments_per_message?: number;
   proxy_enabled?: boolean;
   default_model?: string;
+  model_strategy?: {
+    deep?: string;
+    fast?: string;
+  };
   [key: string]: unknown;
+};
+
+export type CandidateProfile = {
+  self_introduction: string;
+  project_experience: string;
+  target_direction: string;
+  weak_points: string;
+};
+
+export type InterviewTurn = {
+  id: number;
+  turn_index: number;
+  question: string;
+  answer: string | null;
+  feedback: {
+    strengths?: string[];
+    weaknesses?: string[];
+    score?: number;
+    advice?: string;
+    [key: string]: unknown;
+  } | null;
+  model_used: string | null;
+  created_at: string;
+  answered_at: string | null;
+};
+
+export type Interview = {
+  id: number;
+  title: string;
+  status: "active" | "finished" | string;
+  profile: CandidateProfile & Record<string, unknown>;
+  target_direction: string;
+  interview_type: string;
+  weak_points: string;
+  current_question: string | null;
+  final_report: {
+    overall_score?: number;
+    summary?: string;
+    strengths?: string[];
+    weaknesses?: string[];
+    next_steps?: string[];
+    [key: string]: unknown;
+  } | null;
+  created_at: string;
+  updated_at: string;
+  finished_at: string | null;
+  turns: InterviewTurn[];
+};
+
+export type InterviewSummary = {
+  id: number;
+  title: string;
+  status: string;
+  target_direction: string;
+  current_question: string | null;
+  created_at: string;
+  updated_at: string;
+  finished_at: string | null;
 };
 
 export type StreamEvent =
@@ -185,6 +247,33 @@ export async function getRuntimeStatus() {
     }
   }
   return null;
+}
+
+export async function listInterviews() {
+  const result = await request<{ interviews: InterviewSummary[] }>("/api/interviews");
+  return result.interviews;
+}
+
+export function createInterview(profile: CandidateProfile) {
+  return request<Interview>("/api/interviews", {
+    method: "POST",
+    body: JSON.stringify({ ...profile, interview_type: "text" }),
+  });
+}
+
+export function getInterview(id: number) {
+  return request<Interview>(`/api/interviews/${id}`);
+}
+
+export function submitInterviewAnswer(id: number, answer: string) {
+  return request<Interview>(`/api/interviews/${id}/answers`, {
+    method: "POST",
+    body: JSON.stringify({ answer }),
+  });
+}
+
+export function finishInterview(id: number) {
+  return request<Interview>(`/api/interviews/${id}/finish`, { method: "POST" });
 }
 
 export async function streamChat(

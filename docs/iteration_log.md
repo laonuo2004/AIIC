@@ -119,6 +119,28 @@ Reason:
 
 Add entries below as changes are made.
 
+### 2026-05-24: Text Interview MVP Implemented
+
+Change:
+
+- Added persisted interview sessions and turns.
+- Added `/api/interviews` create/list/detail/answer/finish endpoints.
+- Added prompt-backed LiteLLM routing with deep and fast interview model settings.
+- Replaced the generic chat-first UI with Text Interview, Face-to-Face Interview, and Settings.
+- Added backend pytest coverage for interview auth, persistence, feedback/follow-up, final report, and ownership.
+
+Reason:
+
+- Make the product demonstrate a structured mock interview workflow rather than a generic chatbot.
+
+Verification:
+
+- `cd backend && uv run pytest tests/test_interviews.py`
+
+Known risk:
+
+- Public deployment still needs a real OpenRouter smoke test with server-side credentials.
+
 ### Entry Template
 
 ```text

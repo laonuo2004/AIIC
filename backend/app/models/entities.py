@@ -20,6 +20,10 @@ class User(Base):
 
     sessions: Mapped[list["SessionToken"]] = relationship(back_populates="user")
     conversations: Mapped[list["Conversation"]] = relationship(back_populates="user")
+    interview_sessions: Mapped[list["InterviewSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     openrouter_credential: Mapped["OpenRouterCredential | None"] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
@@ -144,3 +148,46 @@ class MessageAttachment(Base):
 
     message: Mapped[Message] = relationship(back_populates="attachments")
     attachment: Mapped[Attachment] = relationship(back_populates="messages")
+
+
+class InterviewSession(Base):
+    __tablename__ = "interview_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="active")
+    profile_json: Mapped[str] = mapped_column(Text, nullable=False)
+    target_direction: Mapped[str] = mapped_column(String(255), nullable=False)
+    interview_type: Mapped[str] = mapped_column(String(40), nullable=False, default="text")
+    weak_points: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    final_report_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="interview_sessions")
+    turns: Mapped[list["InterviewTurn"]] = relationship(
+        back_populates="interview",
+        cascade="all, delete-orphan",
+        order_by="InterviewTurn.turn_index",
+    )
+
+
+class InterviewTurn(Base):
+    __tablename__ = "interview_turns"
+    __table_args__ = (
+        UniqueConstraint("interview_id", "turn_index", name="uq_interview_turn_index"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    interview_id: Mapped[int] = mapped_column(ForeignKey("interview_sessions.id"), nullable=False)
+    turn_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    feedback_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    model_used: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    interview: Mapped[InterviewSession] = relationship(back_populates="turns")

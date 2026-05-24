@@ -47,7 +47,7 @@ Deliberately included:
 - Adaptive follow-up questions.
 - Per-answer feedback.
 - Final report.
-- Login/persistence when practical.
+- Login and saved interview persistence.
 
 Deliberately omitted or minimized:
 

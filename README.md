@@ -21,30 +21,25 @@ The product should be better than plain ChatGPT because it enforces an interview
 
 ## Current Implementation Status
 
-Implemented baseline:
+Implemented:
 
-- FastAPI backend with health, auth, conversation, provider, attachment, and streaming chat APIs.
+- FastAPI backend with health, auth, interview, conversation, provider, attachment, and streaming chat APIs.
 - User registration/login with HttpOnly session cookies and hashed passwords.
-- SQLite persistence for users, sessions, conversations, messages, provider records, model cache, and attachments.
-- LiteLLM-based streaming through OpenRouter.
-- Next.js + TypeScript frontend with chat, settings, theme support, Markdown rendering, attachments, and streaming UI.
+- SQLite persistence for users, sessions, interview sessions, interview turns, conversations, messages, provider records, model cache, and attachments.
+- LiteLLM/OpenRouter calls routed through the backend with project-level `.env` credentials.
+- Next.js + TypeScript frontend with a ResearchMocker text interview workflow, saved interview history, final report view, safe settings page, and experimental face-to-face placeholder.
 - Docker Compose backend/frontend services behind Nginx.
 - Backend pytest coverage and frontend lint/build checks.
 
-In progress / planned for the product MVP:
+Still planned:
 
-- Candidate profile form.
-- Text mock interview workflow.
-- Adaptive follow-up questions.
-- Structured per-answer feedback.
-- Final review report.
-- Backend-managed OpenRouter key and automatic model routing.
-- Removal or hiding of normal-user provider configuration.
-- Reserved face-to-face interview page for an optional Volcengine-powered experiment.
+- Real Volcengine face-to-face speech/video integration.
+- Richer attachments inside the interview prompt context.
+- Exportable final report.
 
 ## Core Features
 
-Target MVP:
+MVP:
 
 - Text-based mock interview for research/project deep dives.
 - Candidate setup with self-introduction, project experience, target direction, and weak points.
@@ -52,7 +47,7 @@ Target MVP:
 - Adaptive follow-up based on the candidate's previous answer.
 - Structured feedback with strengths, weaknesses, score, and actionable advice.
 - Final report covering technical depth, project ownership, research thinking, communication clarity, and next practice steps.
-- Login and saved interview records where practical.
+- Login and saved interview records.
 
 Optional differentiator:
 
@@ -74,7 +69,7 @@ The optional face-to-face mode must not block the text MVP.
 
 Normal users should not need to understand providers, API keys, or raw model IDs.
 
-Planned backend routing:
+Backend routing:
 
 - `openrouter/qwen/qwen3.6-plus`
   - candidate profile understanding
@@ -102,6 +97,8 @@ DATABASE_URL=sqlite:///./data/app.sqlite3
 SECRET_KEY=replace_with_a_random_secret_key
 LITELLM_MODEL=openrouter/qwen/qwen3.6-flash
 LITELLM_FALLBACK_MODEL=openrouter/qwen/qwen3.6-flash
+INTERVIEW_DEEP_MODEL=openrouter/qwen/qwen3.6-plus
+INTERVIEW_FAST_MODEL=openrouter/qwen/qwen3.6-flash
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 ```
 
@@ -145,7 +142,7 @@ FRONTEND_ORIGIN=http://localhost:3000
 
 ## API Summary
 
-Current baseline APIs:
+Current APIs:
 
 - `GET /health`
 - `GET /api/status`
@@ -153,21 +150,18 @@ Current baseline APIs:
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `POST /api/interviews`
+- `GET /api/interviews`
+- `GET /api/interviews/{interview_id}`
+- `POST /api/interviews/{interview_id}/answers`
+- `POST /api/interviews/{interview_id}/finish`
 - `POST /api/chat/stream`
 - `GET /api/conversations`
 - `GET /api/conversations/{conversation_id}`
 - `POST /api/attachments`
 - `GET /api/attachments/{id}`
 
-Planned interview APIs:
-
-- `POST /api/interviews`
-- `GET /api/interviews`
-- `GET /api/interviews/{interview_id}`
-- `POST /api/interviews/{interview_id}/answers`
-- `POST /api/interviews/{interview_id}/finish`
-
-The final endpoint names may change during implementation, but the product boundary should stay interview-specific.
+The generic chat/provider APIs remain for compatibility, but the product UI uses the interview APIs.
 
 ## Uploads
 

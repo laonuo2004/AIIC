@@ -13,6 +13,8 @@ class Settings(BaseSettings):
 
     litellm_model: str = "openrouter/qwen/qwen3.6-flash"
     litellm_fallback_model: str | None = "openrouter/qwen/qwen3.6-flash"
+    interview_deep_model: str = "openrouter/qwen/qwen3.6-plus"
+    interview_fast_model: str = "openrouter/qwen/qwen3.6-flash"
     litellm_temperature: float = 0.2
     litellm_timeout_seconds: int = 60
     openrouter_api_key: str | None = Field(default=None, repr=False)

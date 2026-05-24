@@ -85,7 +85,7 @@ Core backend responsibilities:
 - Error handling without leaking provider internals.
 - Optional Volcengine integration behind backend endpoints.
 
-Planned interview API shape:
+Implemented interview API shape:
 
 ```text
 POST /api/interviews
@@ -95,7 +95,7 @@ POST /api/interviews/{interview_id}/answers
 POST /api/interviews/{interview_id}/finish
 ```
 
-The current chat APIs can be reused internally, but the product-facing workflow should become interview-specific.
+The current chat APIs remain for compatibility, but the product-facing workflow is interview-specific.
 
 ## Data Model Direction
 

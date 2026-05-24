@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import attachments, auth, chat, providers
+from app.api import attachments, auth, chat, interviews, providers
 from app.core.config import Settings, get_settings
 from app.core.database import init_db
 
@@ -18,7 +18,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="AIIC Stack Test Chat", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="ResearchMocker API", version="0.2.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,11 +48,15 @@ def runtime_status() -> dict[str, object]:
             or os.environ.get("HTTPS_PROXY")
             or os.environ.get("NO_PROXY")
         ),
-        "default_model": current.litellm_model,
+        "model_strategy": {
+            "deep": current.interview_deep_model,
+            "fast": current.interview_fast_model,
+        },
     }
 
 
 app.include_router(auth.router)
+app.include_router(interviews.router)
 app.include_router(chat.router)
 app.include_router(providers.router)
 app.include_router(attachments.router)

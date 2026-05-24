@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AIIC Chat Studio",
-  description: "AIIC Chat Studio with OpenRouter model routing and file-aware chat.",
+  title: "ResearchMocker",
+  description: "Research-oriented AI mock interviews with adaptive follow-ups and feedback.",
 };
 
 export default function RootLayout({
