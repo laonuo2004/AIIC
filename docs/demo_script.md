@@ -1,30 +1,103 @@
-# AIIC Chat Studio Demo Script
+# ResearchMocker Demo Script
 
 Target length: under 3 minutes.
 
-## Flow
+## Opening: First 30 Seconds
 
-1. Open http://115.190.120.206/.
-2. Register a new test account or log in with a prepared demo account.
-3. Show the Chat Studio layout: left app rail, conversation list, main chat surface, black/white theme, and purple accent.
-4. Open the OpenRouter page, save a user API key, and point out that the UI only shows a key hint, not the plaintext key.
-5. Sync models from OpenRouter, enable a small set of models, and select one model for chat.
-6. Return to Chat, attach a small UTF-8 text file and an image, then send a prompt such as: `请结合附件内容，用三点总结这个输入适合如何改进产品演示。`
-7. Point out that the assistant response streams through FastAPI and LiteLLM using the selected OpenRouter model.
-8. Refresh the page and reopen the thread to show SQLite conversation persistence.
-9. Open Settings and show safe runtime/deployment state: environment, database type, upload limits, proxy status, and default model.
-10. Log out and confirm protected conversations/attachments are not visible without authentication.
+Show the strongest product moment immediately.
 
-## Talking Points
+1. Open `http://115.190.120.206/`.
+2. Log in with a prepared test account or register quickly.
+3. Start from a pre-filled candidate profile:
+   - CS/AI undergraduate.
+   - One research or project experience.
+   - Target direction.
+   - Weak point, such as "I struggle to explain my project contribution clearly."
+4. Start the mock interview.
+5. Show the interviewer asking a project-specific question, not a generic question.
+6. Give a deliberately vague answer.
+7. Show structured feedback that points out missing evidence, unclear ownership, or weak technical depth.
 
-- AIIC Chat Studio is a lightweight AI product shell built from the original full-stack baseline.
-- Backend: FastAPI, SQLite, HttpOnly session cookies, encrypted user OpenRouter keys, model sync, protected uploads, LiteLLM streaming, pytest.
-- Frontend: Next.js, TypeScript, Chat/OpenRouter/Settings navigation, theme modes, Markdown rendering, attachments, and streaming response UI.
-- Deployment: Docker Compose services behind Nginx on an Ubuntu cloud server.
-- Model routing is user-configurable through OpenRouter and normalized through LiteLLM.
-- Secrets stay in `.env` or encrypted database records and are never sent to frontend JavaScript as plaintext.
-- Proxy setup, including `clash-for-linux`, is server operations work outside the application.
+Suggested narration:
 
-## Fallback Line
+```text
+ResearchMocker is an AI mock interviewer for research-oriented CS interviews. Instead of chatting freely, it runs a real interview loop: one question, one answer, immediate structured feedback, and an adaptive follow-up.
+```
 
-If the external model provider is slow during recording, show an existing persisted conversation and explain that automated tests mock provider calls while the public deployment can be smoke-tested with a real OpenRouter key before submission.
+## Main Flow
+
+1. Show the candidate profile fields:
+   - self-introduction
+   - project/research experience
+   - target direction
+   - weak points
+2. Start a text interview.
+3. Let the AI ask one targeted question.
+4. Answer with a short response.
+5. Show per-answer feedback:
+   - strengths
+   - weaknesses
+   - score
+   - actionable advice
+6. Show the follow-up question reacting to the previous answer.
+7. Finish the interview.
+8. Show the final report:
+   - overall assessment
+   - technical depth
+   - project ownership
+   - research thinking
+   - communication clarity
+   - next practice plan
+
+## Optional Face-to-Face Segment
+
+Only include this segment if the page is implemented enough to show honestly.
+
+1. Open the Face-to-Face Interview page.
+2. Show interviewer image upload and reference audio upload.
+3. Explain the intended pipeline:
+   - image to ready/listening digital human clips
+   - reference audio to voice clone
+   - microphone input to real-time speech model
+   - generated response audio/video for a face-to-face feeling
+4. If real API integration is working, show the ready/listening/speaking state switch.
+5. If not working, state clearly that this is the next-step design and return to the text MVP.
+
+Suggested narration:
+
+```text
+The text flow is the reliable MVP. The face-to-face mode is the next layer: it tries to reduce the gap between ChatGPT-style text practice and the pressure of a real interview.
+```
+
+## Engineering Talking Points
+
+Keep this short:
+
+- Backend: FastAPI, SQLite, HttpOnly sessions, pytest.
+- Frontend: Next.js, TypeScript, responsive interview UI.
+- LLM: backend-only routing through LiteLLM and OpenRouter.
+- Models: Plus for deep analysis and final reports, Flash for fast interview turns.
+- Deployment: Docker Compose behind Nginx on a public server.
+- Safety: secrets stay in `.env`; provider calls are mocked in automated tests.
+
+## Fallback Plan
+
+If the live provider is slow:
+
+- Use a saved demo interview record.
+- Show the final report from an earlier run.
+- Explain that automated tests mock providers, while the public deployment can be smoke-tested manually.
+
+If face-to-face mode is incomplete:
+
+- Do not fake it as complete.
+- Show the reserved page or design note briefly.
+- Spend most of the demo on the working text interview loop.
+
+## Closing
+
+End with:
+
+```text
+The narrow goal is to help students practice the hardest part of research interviews: defending their own project experience under follow-up questions, then turning vague answers into concrete improvement steps.
+```
