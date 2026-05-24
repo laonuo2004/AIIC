@@ -103,13 +103,12 @@ Reason:
 
 Decision:
 
-- Use `openrouter/qwen/qwen3.6-plus` for deep analysis and final reports.
-- Use `openrouter/qwen/qwen3.6-flash` for fast interview turns and per-answer feedback.
+- Use `openrouter/qwen/qwen3.6-plus` for first questions, follow-up generation, per-answer feedback, and final reports.
 
 Reason:
 
-- Deep analysis benefits from stronger reasoning.
-- Multi-turn practice needs speed and responsiveness.
+- The prompt-first MVP depends on stronger reviewer-style judgment inside the existing feedback/report fields.
+- One interview model reduces demo variability while the product is still narrow and time-boxed.
 
 ### Face-to-Face Interview As Optional Differentiator
 

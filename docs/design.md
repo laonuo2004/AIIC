@@ -185,16 +185,18 @@ Backend model routing:
 - `openrouter/qwen/qwen3.6-plus`
   - candidate profile analysis
   - project/research summary
+  - first question generation
+  - follow-up question generation
+  - answer feedback
   - final report
   - deeper reasoning
 
-- `openrouter/qwen/qwen3.6-flash`
-  - frequent interview turns
-  - answer feedback
-  - follow-up question generation
-  - fast practice interactions
+The current MVP keeps interview-specific routing on the plus model so strict
+follow-up quality, missing-evidence detection, rewrite advice, and pass-risk
+judgment stay consistent. The generic chat fallback can still use its separate
+LiteLLM default.
 
-Both selected models are treated as supporting text, image, and video input based on provider-side confirmation.
+The selected OpenRouter model is treated as supporting text, image, and video input based on provider-side confirmation.
 
 ## Prompt Design
 

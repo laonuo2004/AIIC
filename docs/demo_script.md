@@ -23,6 +23,12 @@ Show the strongest product moment immediately.
 9. Show the teacher-perspective explanation: why a real teacher would keep asking about this claim.
 10. Show the reviewer-style adaptive follow-up that presses method design, experiment proof, or personal contribution.
 
+Recommended demo inputs are in `demo/`:
+
+- Use `Self-introduction.md`, `Project or research experience.md`, `Target direction.md`, and `Weak points.md` for the project card.
+- Attach one or two small supporting files from the same folder, such as `1-个人简历.pdf` or `2-个人自述.pdf`.
+- Keep `Interviewer.jpg` and `20260518_210026.mp3` for the optional face-to-face segment only.
+
 Suggested narration:
 
 ```text

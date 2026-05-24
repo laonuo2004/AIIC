@@ -107,8 +107,7 @@ The baseline must be adapted, not recreated.
   - answer feedback
   - final report
 - Implement backend model routing:
-  - `openrouter/qwen/qwen3.6-plus` for profile analysis and final report
-  - `openrouter/qwen/qwen3.6-flash` for frequent interview turns and single-answer feedback
+  - `openrouter/qwen/qwen3.6-plus` for first questions, follow-ups, feedback, and final report
 - Persist interview records in SQLite or clearly display them during the session if time is tight.
 - Keep deployment working through Docker Compose and Nginx.
 - Prepare a test account if login remains required.
@@ -375,17 +374,15 @@ Normal users should not see provider details.
 Backend routing:
 
 - Deep model: `openrouter/qwen/qwen3.6-plus`
-- Fast model: `openrouter/qwen/qwen3.6-flash`
+- Fast model: `openrouter/qwen/qwen3.6-plus`
+- Feedback model: `openrouter/qwen/qwen3.6-plus`
 
-Both selected models are treated as supporting text, image, and video input based on provider-side confirmation.
+The selected interview model is treated as supporting text, image, and video input based on provider-side confirmation.
 
 Use cases:
 
-- Candidate profile and project understanding: deep model.
-- First question: deep model if profile is rich, otherwise fast model.
-- Follow-up questions: fast model.
-- Single-answer feedback: fast model.
-- Final report: deep model.
+- Candidate profile and project understanding: plus model.
+- First question, follow-up, feedback, and final report: plus model for consistent reviewer-style quality.
 
 All provider calls must be backend-only through LiteLLM or an isolated adapter.
 

@@ -83,19 +83,12 @@ Normal users should not need to understand providers, API keys, or raw model IDs
 
 Backend routing:
 
-- `openrouter/qwen/qwen3.6-plus`
-  - candidate profile understanding
-  - project/research experience analysis
-  - final review report
-  - deeper reasoning steps
+Current MVP uses `openrouter/qwen/qwen3.6-plus` for first questions, adaptive
+follow-ups, single-answer feedback, and final reports. Keeping the interview
+workflow on one stronger model makes reviewer-style pressure and pass-risk
+judgment more consistent during the demo.
 
-- `openrouter/qwen/qwen3.6-flash`
-  - frequent interview turns
-  - follow-up question generation
-  - single-answer feedback
-  - fast practice interactions
-
-Both selected OpenRouter models are treated as supporting text, image, and video input based on provider-side confirmation.
+The selected OpenRouter interview model is treated as supporting text, image, and video input based on provider-side confirmation.
 
 ## Environment
 
@@ -110,7 +103,8 @@ SECRET_KEY=replace_with_a_random_secret_key
 LITELLM_MODEL=openrouter/qwen/qwen3.6-flash
 LITELLM_FALLBACK_MODEL=openrouter/qwen/qwen3.6-flash
 INTERVIEW_DEEP_MODEL=openrouter/qwen/qwen3.6-plus
-INTERVIEW_FAST_MODEL=openrouter/qwen/qwen3.6-flash
+INTERVIEW_FAST_MODEL=openrouter/qwen/qwen3.6-plus
+INTERVIEW_FEEDBACK_MODEL=openrouter/qwen/qwen3.6-plus
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 UPLOAD_DIR=./data/uploads
 MAX_UPLOAD_BYTES=5242880
@@ -274,6 +268,22 @@ Target 3-minute demo:
 8. Show structured feedback, teacher-perspective explanation, rhythm feedback, and an adaptive follow-up question.
 9. Finish and show the final review report.
 10. Briefly show engineering stack and deployment.
+
+Recommended local demo materials are already in `demo/`:
+
+- `Self-introduction.md`
+- `Project or research experience.md`
+- `Target direction.md`
+- `Weak points.md`
+- `1-个人简历.pdf`
+- `2-个人自述.pdf`
+- `3-成绩证明(含GPA).pdf`
+- `4-外语水平证明.pdf`
+- `Interviewer.jpg` and `20260518_210026.mp3` for the optional face-to-face experiment
+
+Use the Markdown files to fill the lightweight project card, then attach one or
+two small PDFs/images as supporting context. Do not put private credentials or
+provider settings into demo inputs.
 
 If the face-to-face page is ready, show it as the bridge from text practice to realistic interview simulation. If it is not ready, do not present it as implemented.
 

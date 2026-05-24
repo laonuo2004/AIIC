@@ -1,7 +1,7 @@
 [project]
-name = "aiic-backend"
+name = "researchmocker-backend"
 version = "0.1.0"
-description = "FastAPI backend for the AIIC stack test chat prototype"
+description = "FastAPI backend for the ResearchMocker interview workflow"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
