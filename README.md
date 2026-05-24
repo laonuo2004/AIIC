@@ -6,6 +6,11 @@ Public demo: http://115.190.120.206/
 
 Health check: http://115.190.120.206/health
 
+## Release
+
+- Version: v0.3 (2026-05-24)
+- Release notes: docs/iteration_log.md
+
 ## Product Positioning
 
 Many students preparing for graduate recommendation interviews, research internships, or lab admission interviews have project experience but lack realistic practice and actionable feedback. Recent lightweight user research showed that students are especially worried about vague project answers being challenged by teachers or reviewers: why this design was chosen, whether alternatives were tried, whether experiments prove the claim, what part was personally done by the candidate, and whether the project story is convincing.
