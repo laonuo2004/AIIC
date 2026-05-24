@@ -759,6 +759,136 @@ textarea {
   line-height: 1.55;
 }
 
+.face-setup {
+  align-self: start;
+  display: grid;
+  gap: 14px;
+}
+
+.file-drop {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px dashed color-mix(in srgb, var(--line) 70%, var(--accent));
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 74px;
+  padding: 16px;
+}
+
+.file-drop input {
+  display: none;
+}
+
+.file-drop span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.face-stage-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.face-visual {
+  align-items: center;
+  aspect-ratio: 16 / 10;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), transparent 45%),
+    var(--surface-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  display: flex;
+  justify-content: center;
+  min-height: 260px;
+  overflow: hidden;
+}
+
+.face-visual img,
+.face-visual video {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.face-listening {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+}
+
+.face-speaking {
+  border-color: color-mix(in srgb, var(--gold) 75%, var(--line));
+}
+
+.face-error {
+  border-color: color-mix(in srgb, var(--danger) 75%, var(--line));
+}
+
+.face-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.status-pill {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  gap: 8px;
+  padding: 9px 12px;
+  text-transform: capitalize;
+}
+
+.face-status-listening {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+}
+
+.face-status-speaking {
+  border-color: color-mix(in srgb, var(--gold) 75%, var(--line));
+}
+
+.face-status-error {
+  border-color: color-mix(in srgb, var(--danger) 75%, var(--line));
+  color: var(--danger);
+}
+
+.face-transcript-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.face-transcript-grid div {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 128px;
+  padding: 14px;
+}
+
+.face-transcript-grid h3 {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.face-transcript-grid p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.face-provider-panel {
+  grid-column: 1 / -1;
+}
+
 .state-strip {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -779,6 +909,10 @@ textarea {
   min-height: 52px;
   padding: 16px;
   text-align: center;
+}
+
+.face-status-strip {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .status-table {

@@ -5,33 +5,46 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  CircleAlert,
   FileAudio,
   FileText,
   ImagePlus,
   Loader2,
   LogOut,
   MessageSquareText,
+  Mic,
   Moon,
+  PlayCircle,
   RefreshCw,
   Send,
   Settings,
   Sparkles,
+  Square,
   Sun,
   Trash2,
   UserRound,
   Video,
+  Volume2,
 } from "lucide-react";
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CandidateProfile,
   Attachment,
+  FaceAsset,
+  FaceServerEvent,
+  FaceSession,
   Interview,
   InterviewSummary,
   RuntimeStatus,
   User,
+  cloneFaceVoice,
+  createFaceAsset,
+  createFaceSession,
   createInterview,
+  faceWebSocketUrl,
   finishInterview,
+  generateFaceVideos,
   getInterview,
   getMe,
   getRuntimeStatus,
@@ -760,7 +773,183 @@ function ListBlock({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+type FaceStage =
+  | "setup"
+  | "preparing_voice"
+  | "generating_videos"
+  | "ready"
+  | "listening"
+  | "speaking"
+  | "error";
+
 function FaceWorkspace() {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [asset, setAsset] = useState<FaceAsset | null>(null);
+  const [session, setSession] = useState<FaceSession | null>(null);
+  const [stage, setStage] = useState<FaceStage>("setup");
+  const [statusLines, setStatusLines] = useState<string[]>(["Upload image and audio to start."]);
+  const [transcript, setTranscript] = useState("");
+  const [assistantText, setAssistantText] = useState("");
+  const [error, setError] = useState("");
+  const [working, setWorking] = useState(false);
+  const socketRef = useRef<WebSocket | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const canPrepare = Boolean(imageFile && audioFile && !working);
+  const visualUrl =
+    stage === "speaking" && asset?.latest_speaking_video_url
+      ? asset.latest_speaking_video_url
+      : asset?.ready_video_url || asset?.image_url || "";
+
+  useEffect(() => {
+    return () => {
+      socketRef.current?.close();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  function pushStatus(line: string) {
+    setStatusLines((current) => [line, ...current].slice(0, 5));
+  }
+
+  async function prepareAsset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!imageFile || !audioFile || working) return;
+    setWorking(true);
+    setError("");
+    setTranscript("");
+    setAssistantText("");
+    try {
+      setStage("preparing_voice");
+      pushStatus("Uploading face assets.");
+      const uploaded = await createFaceAsset(imageFile, audioFile);
+      setAsset(uploaded);
+      pushStatus("Registering cloned voice from reference audio.");
+      const voiceReady = await cloneFaceVoice(uploaded.id);
+      setAsset(voiceReady);
+      setStage("generating_videos");
+      pushStatus("Submitting optional OmniHuman video jobs.");
+      let videoReady = voiceReady;
+      try {
+        videoReady = await generateFaceVideos(uploaded.id);
+        setAsset(videoReady);
+        pushStatus("Video jobs submitted. Speech remains the realtime path.");
+      } catch (videoError) {
+        const message =
+          videoError instanceof Error ? videoError.message : "Video generation is not configured.";
+        setAsset((current) => (current ? { ...current, error_message: message } : current));
+        pushStatus(`Video setup skipped: ${message}`);
+      }
+      const createdSession = await createFaceSession(videoReady.id);
+      setSession(createdSession);
+      setStage("ready");
+      pushStatus("Realtime speech session is ready.");
+    } catch (prepareError) {
+      setStage("error");
+      setError(prepareError instanceof Error ? prepareError.message : "Could not prepare face interview.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  function ensureSocket() {
+    if (!session) throw new Error("Prepare a face session first.");
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      return socketRef.current;
+    }
+    const socket = new WebSocket(faceWebSocketUrl(session.id));
+    socketRef.current = socket;
+    socket.onopen = () => socket.send(JSON.stringify({ event: "start_session" }));
+    socket.onmessage = (message) => handleServerEvent(JSON.parse(message.data) as FaceServerEvent);
+    socket.onerror = () => {
+      setStage("error");
+      setError("Realtime speech connection failed.");
+    };
+    socket.onclose = () => {
+      if (stage !== "error") pushStatus("Realtime connection closed.");
+    };
+    return socket;
+  }
+
+  function handleServerEvent(event: FaceServerEvent) {
+    if (event.event === "session_started") {
+      pushStatus("Provider session started.");
+      return;
+    }
+    if (event.event === "asr_partial" || event.event === "asr_final") {
+      setTranscript(event.text);
+      return;
+    }
+    if (event.event === "assistant_text") {
+      setAssistantText(event.text);
+      setStage("speaking");
+      return;
+    }
+    if (event.event === "assistant_audio") {
+      playAssistantAudio(event.audio, event.mime ?? "audio/wav");
+      setStage("speaking");
+      return;
+    }
+    if (event.event === "speaking_video_ready") {
+      setAsset((current) =>
+        current ? { ...current, latest_speaking_video_url: event.video_url } : current,
+      );
+      return;
+    }
+    if (event.event === "tts_ended" || event.event === "session_finished") {
+      setStage("ready");
+      return;
+    }
+    if (event.event === "error") {
+      setStage("error");
+      setError(event.message);
+    }
+  }
+
+  function playAssistantAudio(base64: string, mime: string) {
+    const audio = new Audio(`data:${mime};base64,${base64}`);
+    audio.onended = () => setStage("ready");
+    void audio.play().catch(() => pushStatus("Assistant audio is ready but browser autoplay blocked it."));
+  }
+
+  async function startListening() {
+    if (!session || working || stage === "listening") return;
+    setError("");
+    try {
+      const socket = ensureSocket();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = async (event) => {
+        if (event.data.size === 0 || socket.readyState !== WebSocket.OPEN) return;
+        socket.send(JSON.stringify({ event: "audio_chunk", audio: await blobToBase64(event.data) }));
+      };
+      recorder.start(500);
+      setStage("listening");
+      pushStatus("Listening. Release stop when your answer is complete.");
+    } catch (listenError) {
+      setStage("error");
+      setError(
+        listenError instanceof Error
+          ? listenError.message
+          : "Microphone access failed. Browser HTTPS rules may block HTTP demos.",
+      );
+    }
+  }
+
+  function stopListening() {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    socketRef.current?.send(JSON.stringify({ event: "end_asr" }));
+    setStage("ready");
+    pushStatus("Answer audio sent.");
+  }
+
   return (
     <div className="page-view">
       <header className="page-header">
@@ -768,30 +957,124 @@ function FaceWorkspace() {
           <p className="eyebrow">Experimental</p>
           <h1>Face-to-Face Interview</h1>
           <p className="muted">
-            Reserved for a Volcengine-powered real-time digital interviewer experiment. The text
-            interview remains the stable MVP path.
+            Push-to-talk realtime speech with optional OmniHuman video enhancement. Text Interview
+            remains the stable MVP path.
           </p>
         </div>
       </header>
       <section className="face-grid">
-        <div className="upload-tile">
-          <ImagePlus size={28} />
-          <h2>Interviewer image</h2>
-          <p>Upload entry is planned for idle, listening, and speaking visual states.</p>
-        </div>
-        <div className="upload-tile">
-          <FileAudio size={28} />
-          <h2>Reference audio</h2>
-          <p>Voice cloning and real-time speech are intentionally not enabled in this MVP.</p>
-        </div>
-        <div className="state-strip">
-          <span>Ready</span>
-          <span>Listening</span>
-          <span>Speaking</span>
-        </div>
+        <form className="panel face-setup" onSubmit={prepareAsset}>
+          <h2>Setup</h2>
+          <label className="file-drop">
+            <ImagePlus size={22} />
+            <span>{imageFile ? imageFile.name : "Interviewer image"}</span>
+            <input
+              accept="image/png,image/jpeg,image/webp"
+              type="file"
+              onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          <label className="file-drop">
+            <FileAudio size={22} />
+            <span>{audioFile ? audioFile.name : "Reference audio"}</span>
+            <input
+              accept="audio/mpeg,audio/wav,audio/mp4,audio/ogg,audio/aac"
+              type="file"
+              onChange={(event) => setAudioFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          <button className="primary-button" disabled={!canPrepare} type="submit">
+            {working ? <Loader2 className="spin" size={17} /> : <Sparkles size={17} />}
+            Prepare interviewer
+          </button>
+          {error ? <p className="form-error">{error}</p> : null}
+        </form>
+
+        <section className="panel face-stage-panel">
+          <div className={`face-visual face-${stage}`}>
+            {visualUrl ? (
+              visualUrl.endsWith(".mp4") || visualUrl.includes(".mp4?") ? (
+                <video autoPlay loop muted playsInline src={visualUrl} />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img alt="Digital interviewer" src={visualUrl} />
+              )
+            ) : (
+              <Video size={54} />
+            )}
+          </div>
+          <div className="face-controls">
+            <StatusPill stage={stage} />
+            {stage === "listening" ? (
+              <button className="danger-button" onClick={stopListening} type="button">
+                <Square size={17} />
+                Stop
+              </button>
+            ) : (
+              <button
+                className="primary-button"
+                disabled={!session || working}
+                onClick={startListening}
+                type="button"
+              >
+                <Mic size={17} />
+                Push to talk
+              </button>
+            )}
+          </div>
+          <div className="face-transcript-grid">
+            <div>
+              <h3>Candidate</h3>
+              <p>{transcript || "Microphone transcript will appear here."}</p>
+            </div>
+            <div>
+              <h3>Interviewer</h3>
+              <p>{assistantText || "Realtime response text will appear here."}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="state-strip face-status-strip">
+          {statusLines.map((line) => (
+            <span key={line}>{line}</span>
+          ))}
+        </section>
+        <section className="panel face-provider-panel">
+          <h2>Provider state</h2>
+          <dl className="status-table">
+            <dt>Asset</dt>
+            <dd>{asset ? `#${asset.id} ${asset.status}` : "Not prepared"}</dd>
+            <dt>Voice</dt>
+            <dd>{asset?.speaker_id ? "Cloned voice registered" : "Waiting"}</dd>
+            <dt>Video</dt>
+            <dd>{asset?.error_message || asset?.provider_status || "Optional"}</dd>
+            <dt>Session</dt>
+            <dd>{session ? `#${session.id} ${session.status}` : "Not started"}</dd>
+          </dl>
+        </section>
       </section>
     </div>
   );
+}
+
+function StatusPill({ stage }: { stage: FaceStage }) {
+  const icon =
+    stage === "listening" ? <Mic size={16} /> : stage === "speaking" ? <Volume2 size={16} /> : stage === "error" ? <CircleAlert size={16} /> : <PlayCircle size={16} />;
+  return (
+    <span className={`status-pill face-status-${stage}`}>
+      {icon}
+      {stage.replace("_", " ")}
+    </span>
+  );
+}
+
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",", 2)[1] ?? "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
 
 function SettingsWorkspace(props: {

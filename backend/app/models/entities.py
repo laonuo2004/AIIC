@@ -33,6 +33,10 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="user")
+    face_assets: Mapped[list["FaceAsset"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 
 class SessionToken(Base):
@@ -211,3 +215,68 @@ class InterviewTurn(Base):
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     interview: Mapped[InterviewSession] = relationship(back_populates="turns")
+
+
+class FaceAsset(Base):
+    __tablename__ = "face_assets"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="uploaded")
+    image_path: Mapped[str] = mapped_column(Text, nullable=False)
+    image_mime_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    image_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    image_media_token: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    audio_path: Mapped[str] = mapped_column(Text, nullable=False)
+    audio_mime_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    audio_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    audio_media_token: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    speaker_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    ready_video_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    listening_video_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    latest_speaking_video_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provider_status: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    user: Mapped[User] = relationship(back_populates="face_assets")
+    video_jobs: Mapped[list["FaceVideoJob"]] = relationship(
+        back_populates="asset",
+        cascade="all, delete-orphan",
+    )
+    realtime_sessions: Mapped[list["FaceRealtimeSession"]] = relationship(
+        back_populates="asset",
+        cascade="all, delete-orphan",
+    )
+
+
+class FaceVideoJob(Base):
+    __tablename__ = "face_video_jobs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    asset_id: Mapped[int] = mapped_column(ForeignKey("face_assets.id"), nullable=False)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    provider_task_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    video_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    asset: Mapped[FaceAsset] = relationship(back_populates="video_jobs")
+
+
+class FaceRealtimeSession(Base):
+    __tablename__ = "face_realtime_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    asset_id: Mapped[int] = mapped_column(ForeignKey("face_assets.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="created")
+    provider_session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    asset: Mapped[FaceAsset] = relationship(back_populates="realtime_sessions")

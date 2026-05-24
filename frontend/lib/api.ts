@@ -124,6 +124,41 @@ export type InterviewSummary = {
   finished_at: string | null;
 };
 
+export type FaceAsset = {
+  id: number;
+  status: string;
+  image_url: string;
+  audio_url: string;
+  speaker_id: string | null;
+  ready_video_url: string | null;
+  listening_video_url: string | null;
+  latest_speaking_video_url: string | null;
+  provider_status: string | null;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FaceSession = {
+  id: number;
+  asset_id: number;
+  status: string;
+  created_at: string;
+};
+
+export type FaceServerEvent =
+  | { event: "session_started"; speaker_id?: string; resource_id?: string }
+  | { event: "asr_partial"; text: string }
+  | { event: "asr_final"; text: string }
+  | { event: "assistant_text"; text: string }
+  | { event: "assistant_audio"; audio: string; mime?: string }
+  | { event: "tts_started" }
+  | { event: "tts_ended" }
+  | { event: "speaking_video_pending" }
+  | { event: "speaking_video_ready"; video_url: string }
+  | { event: "session_finished" }
+  | { event: "error"; message: string };
+
 export type StreamEvent =
   | { event: "meta"; data: { conversation_id: number; model_id?: string | null } }
   | { event: "delta"; data: { text: string } }
@@ -258,6 +293,51 @@ export async function uploadAttachments(files: File[]) {
   }
 
   return response.json() as Promise<{ attachments: Attachment[] }>;
+}
+
+export async function createFaceAsset(image: File, audio: File) {
+  const form = new FormData();
+  form.append("image", image);
+  form.append("audio", audio);
+
+  const response = await fetch(`${API_BASE}/api/face/assets`, {
+    method: "POST",
+    credentials: "include",
+    body: form,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ detail: "Face asset upload failed" }));
+    throw new Error(errorMessageFromBody(body, "Face asset upload failed"));
+  }
+
+  return response.json() as Promise<FaceAsset>;
+}
+
+export function cloneFaceVoice(assetId: number) {
+  return request<FaceAsset>(`/api/face/assets/${assetId}/voice-clone`, { method: "POST" });
+}
+
+export function generateFaceVideos(assetId: number) {
+  return request<FaceAsset>(`/api/face/assets/${assetId}/videos`, { method: "POST" });
+}
+
+export function getFaceAsset(assetId: number) {
+  return request<FaceAsset>(`/api/face/assets/${assetId}`);
+}
+
+export function createFaceSession(assetId: number) {
+  return request<FaceSession>("/api/face/session", {
+    method: "POST",
+    body: JSON.stringify({ asset_id: assetId }),
+  });
+}
+
+export function faceWebSocketUrl(sessionId: number) {
+  const base = API_BASE || window.location.origin;
+  const url = new URL(`/api/face/session/${sessionId}/stream`, base);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.toString();
 }
 
 export function attachmentUrl(id: number) {
