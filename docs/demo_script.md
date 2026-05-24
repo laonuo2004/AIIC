@@ -1,132 +1,96 @@
-# ResearchMocker Demo Script
+# ResearchMocker 演示脚本
 
-Target length: under 3 minutes.
+目标时长：3 分钟以内。
 
-## Opening: First 30 Seconds
+## 开场：前 30 秒
 
-Show the strongest product moment immediately.
+立刻展示最强产品画面。
 
-1. Open `http://115.190.120.206/`.
-2. Log in with a prepared test account or register quickly.
-3. Start from a pre-filled project card:
-   - CS/AI undergraduate.
-   - One concrete research or project experience.
-   - Target direction.
-   - Personal contribution.
-   - Experiment/result claim.
-   - Weak point, such as "I struggle to explain my project contribution clearly."
-4. Upload one supporting PDF/report and one image, such as an architecture diagram or experiment figure.
-5. Start the mock interview.
-6. Show the interviewer asking a project-specific deep-dive or reviewer-style question based on the profile and uploaded material, not a generic question.
-7. Give a deliberately vague answer, for example: "我们改了模型所以效果变好。"
-8. Show structured feedback that points out missing baseline, missing metric evidence, unclear ownership, weak technical depth, and poor answer rhythm.
-9. Show the teacher-perspective explanation: why a real teacher would keep asking about this claim.
-10. Show the reviewer-style adaptive follow-up, for example: "你怎么证明提升来自这个模块，而不是数据划分、训练设置或其他混杂因素？"
+1. 打开 `http://115.190.120.206/`。
+2. 登录测试账号，或快速注册。
+3. 使用预填项目卡：
+   - CS/AI 本科生。
+   - 一个具体科研项目。
+   - 目标方向。
+   - 个人贡献。
+   - 实验结果。
+   - 担心被追问的点。
+4. 上传 1 个 PDF/报告和 1 张结构图或结果图。
+5. 开始文本面试。
+6. 展示 AI 提出基于项目材料的深挖问题。
+7. 故意给出空泛回答：`我们改了模型所以效果变好。`
+8. 展示反馈：缺 baseline、缺指标、个人贡献不清、技术细节浅、回答节奏松。
+9. 展示老师视角：为什么真实老师会继续追这个点。
+10. 展示追问：`你怎么证明提升来自这个模块，而不是数据划分或训练设置？`
 
-Recommended demo inputs are in `demo/`:
+推荐输入在 `demo/`：
 
-- Use `Self-introduction.md`, `Project or research experience.md`, `Target direction.md`, and `Weak points.md` for the project card.
-- Attach one or two small supporting files from the same folder, such as `1-个人简历.pdf` or `2-个人自述.pdf`.
-- Keep `Interviewer.jpg` and `20260518_210026.mp3` for the optional face-to-face segment only.
+- 使用 `Self-introduction.md`、`Project or research experience.md`、`Target direction.md`、`Weak points.md` 填项目卡。
+- 附件只放 1-2 个小文件，例如 `1-个人简历.pdf` 或 `2-个人自述.pdf`。
+- `Interviewer.jpg` 和 `20260518_210026.mp3` 只用于面对面实验页。
 
-Suggested narration:
-
-```text
-ResearchMocker is an AI project-deep-dive and reviewer-style mock interviewer for research-oriented CS interviews. It is not a friendly chatbot. It pressure-tests vague project answers, catches missing evidence and unclear personal contribution, explains why a real teacher or reviewer would follow up, and turns the answer into concrete rewrite steps.
-```
-
-## Main Flow
-
-1. Show the candidate profile fields:
-   - self-introduction
-   - project/research experience
-   - target direction
-   - personal contribution
-   - key method or design choice
-   - experiment/result claim
-   - failure case or limitation
-   - weak points
-2. Show the upload area for supporting project files:
-   - project PDF/report
-   - notes or README text
-   - result chart or architecture image
-3. Start a text interview.
-4. Let the AI ask one targeted question.
-5. Answer with a short response.
-6. Show per-answer feedback:
-   - strengths
-   - weaknesses
-   - teacher perspective
-   - rhythm/length feedback
-   - project story clarity
-   - personal contribution clarity
-   - score
-   - actionable advice
-7. Show a rewrite suggestion or concrete evidence the answer should include.
-8. Show the follow-up question reacting to the previous answer.
-9. Finish the interview.
-10. Show the final report:
-   - overall assessment
-   - pass-risk judgment: likely pass, borderline, or high risk
-   - top 3 reasons for the judgment
-   - technical depth
-   - project ownership
-   - research thinking
-   - communication clarity
-   - vulnerable follow-up points
-   - next practice plan
-
-## Optional Face-to-Face Segment
-
-Only include this segment if the page is implemented enough to show honestly.
-
-1. Open the Face-to-Face Interview page.
-2. Show interviewer image upload and reference audio upload.
-3. Explain the intended pipeline:
-   - image to ready/listening digital human clips
-   - reference audio to voice clone
-   - microphone input to real-time speech model
-   - generated response audio/video for a face-to-face feeling
-4. If real API integration is working, show the ready/listening/speaking state switch.
-5. If not working, state clearly that this is the next-step design and return to the text MVP.
-
-Suggested narration:
+建议旁白：
 
 ```text
-The text flow is the reliable MVP. The face-to-face mode is the next layer: it tries to reduce the gap between ChatGPT-style text practice and the pressure of a real interview.
+ResearchMocker 是面向 CS/AI 保研科研面试的项目深挖 AI 面试官。它不是泛聊天助手，而是用老师式追问找出空泛回答、缺失证据和个人贡献不清的问题，并给出下一版口头答案怎么改。
 ```
 
-## Engineering Talking Points
+## 主流程
 
-Keep this short:
+1. 展示候选人资料：自我介绍、项目经历、目标方向、薄弱点。
+2. 展示附件上传：PDF、笔记、结构图或结果图。
+3. 开始文本面试。
+4. AI 一次只问一个项目深挖问题。
+5. 用户用中文短答。
+6. 展示逐题反馈：优点、风险点、老师视角、回答节奏、分数、改写方向。
+7. 展示基于上一条回答生成的追问。
+8. 结束面试。
+9. 展示最终报告：总分、通过风险、脆弱追问点、24 小时训练计划。
+
+## 可选：面对面实验
+
+只有页面状态足够稳定时再展示。
+
+1. 打开面对面实验页。
+2. 展示面试官图片和参考音频上传。
+3. 简述目标：数字人状态、声音复刻、语音问答。
+4. 如果接口不稳定，明确说明这是实验功能，然后回到文本 MVP。
+
+建议旁白：
+
+```text
+文本面试是可靠 MVP。面对面模式是下一层实验，用来靠近真实面试压力，但不影响主流程。
+```
+
+## 工程说明
+
+保持简短：
 
 - Backend: FastAPI, SQLite, HttpOnly sessions, pytest.
 - Frontend: Next.js, TypeScript, responsive interview UI.
-- LLM: backend-only routing through LiteLLM and OpenRouter.
-- Models: Plus for deep analysis and final reports, Flash for fast interview turns.
-- Deployment: Docker Compose behind Nginx on a public server.
-- Safety: secrets stay in `.env`; provider calls are mocked in automated tests.
+- LLM：只走后端 LiteLLM + OpenRouter。
+- 模型：复杂分析和报告用 Plus，频繁问答用 Flash 或统一配置。
+- 部署：Docker Compose + Nginx + 公网地址。
+- 安全：密钥只在 `.env`，自动化测试 mock provider。
 
-## Fallback Plan
+## 兜底方案
 
-If the live provider is slow:
+如果模型慢或偶发失败：
 
-- Use a saved demo interview record.
-- Show the final report from an earlier run.
-- Use the preset project card so the product value is visible without typing live.
-- Keep uploaded materials small, preferably one short PDF and one image.
-- Explain that automated tests mock providers, while the public deployment can be smoke-tested manually.
+- 使用保存的历史面试记录。
+- 展示提前生成的最终报告。
+- 使用预填项目卡，减少现场输入。
+- 附件只上传小 PDF 和一张图。
 
-If face-to-face mode is incomplete:
+如果面对面模式不完整：
 
-- Do not fake it as complete.
-- Show the reserved page or design note briefly.
-- Spend most of the demo on the working text interview loop.
+- 不要说成已完成。
+- 简短展示设计，然后回到文本面试。
 
-## Closing
+## 收尾
 
-End with:
+结束语：
 
 ```text
-The narrow goal is to help students practice the hardest part of research interviews: defending their own project experience under follow-up questions, then turning vague answers into concrete improvement steps.
+ResearchMocker 的目标很窄：帮学生练会在追问下讲清自己的项目，把空泛回答改成有证据、有贡献边界、能过面试的口头答案。
 ```

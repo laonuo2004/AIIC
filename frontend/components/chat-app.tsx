@@ -271,11 +271,10 @@ export function ChatApp() {
     return (
       <main className="auth-screen">
         <section className="auth-panel" aria-labelledby="auth-title">
-          <p className="eyebrow">Research interview practice</p>
+          <p className="eyebrow">科研面试训练</p>
           <h1 id="auth-title">ResearchMocker</h1>
           <p className="auth-copy">
-            Practice project deep-dive pressure drills with adaptive teacher-style questions,
-            risk-point feedback, and a final review report.
+            面向 CS/AI 保研科研面试的项目深挖训练，包含老师式追问、风险点反馈和最终复盘报告。
           </p>
 
           <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
@@ -284,20 +283,20 @@ export function ChatApp() {
               type="button"
               onClick={() => setAuthMode("login")}
             >
-              Login
+              登录
             </button>
             <button
               className={authMode === "register" ? "active" : ""}
               type="button"
               onClick={() => setAuthMode("register")}
             >
-              Register
+              注册
             </button>
           </div>
 
           <form className="auth-form" onSubmit={submitAuth}>
             <label>
-              Username
+              用户名
               <input
                 autoComplete="username"
                 value={username}
@@ -307,7 +306,7 @@ export function ChatApp() {
               />
             </label>
             <label>
-              Password
+              密码
               <input
                 autoComplete={authMode === "login" ? "current-password" : "new-password"}
                 type="password"
@@ -319,7 +318,7 @@ export function ChatApp() {
             </label>
             {authError ? <p className="form-error">{authError}</p> : null}
             <button className="primary-button" type="submit">
-              {authMode === "login" ? "Login" : "Create account"}
+              {authMode === "login" ? "登录" : "创建账号"}
             </button>
           </form>
         </section>
@@ -334,27 +333,27 @@ export function ChatApp() {
           RM
         </button>
         <nav className="rail-nav">
-          <RailButton active={view === "text"} label="Text Interview" onClick={() => setView("text")}>
+          <RailButton active={view === "text"} label="文本面试" onClick={() => setView("text")}>
             <MessageSquareText size={19} />
           </RailButton>
           <RailButton
             active={view === "face"}
-            label="Face-to-Face"
+            label="面对面实验"
             onClick={() => setView("face")}
           >
             <Video size={19} />
           </RailButton>
           <RailButton
             active={view === "settings"}
-            label="Settings"
+            label="设置"
             onClick={() => setView("settings")}
           >
             <Settings size={19} />
           </RailButton>
         </nav>
-        <button className="rail-action" onClick={signOut} type="button" title="Logout">
+        <button className="rail-action" onClick={signOut} type="button" title="退出登录">
           <LogOut size={19} />
-          <span>Logout</span>
+          <span>退出</span>
         </button>
       </aside>
 
@@ -447,11 +446,11 @@ function TextInterviewWorkspace(props: {
     <div className="interview-layout">
       <aside className="session-panel">
         <div>
-          <p className="eyebrow">Text Interview</p>
-          <h2>Saved sessions</h2>
+          <p className="eyebrow">文本面试</p>
+          <h2>历史练习</h2>
         </div>
         <button className="secondary-button" onClick={props.resetInterviewDraft} type="button">
-          New practice
+          新练习
         </button>
         <div className="session-list">
           {props.interviews.map((interview) => (
@@ -468,7 +467,7 @@ function TextInterviewWorkspace(props: {
             </button>
           ))}
           {props.interviews.length === 0 ? (
-            <p className="empty-note">No interviews yet. Start with the candidate profile.</p>
+            <p className="empty-note">还没有练习记录。先填写候选人资料。</p>
           ) : null}
         </div>
       </aside>
@@ -477,12 +476,12 @@ function TextInterviewWorkspace(props: {
         <header className="workspace-header">
           <div>
             <p>{props.activeInterview?.title ?? "ResearchMocker"}</p>
-            <span>{props.user.username} · project deep dive practice</span>
+            <span>{props.user.username} · 项目深挖训练</span>
           </div>
           {props.activeInterview && props.activeInterview.status !== "finished" ? (
             <button className="secondary-button" onClick={props.finishActiveInterview} type="button" disabled={props.working}>
               {props.working ? <Loader2 className="spin" size={16} /> : <CheckCircle2 size={16} />}
-              Finish
+              结束
             </button>
           ) : null}
         </header>
@@ -536,51 +535,50 @@ function ProfileForm(props: {
     <form className="profile-form" onSubmit={props.startInterview}>
       <div className="page-header compact">
         <div>
-          <p className="eyebrow">Candidate profile</p>
-          <h1>Start a focused mock interview</h1>
+          <p className="eyebrow">候选人资料</p>
+          <h1>开始一次项目深挖模拟面试</h1>
           <p className="muted">
-            You will enter 2-3 rounds of project deep dive practice focused on details,
-            personal contribution, and experiment evidence.
+            接下来会进行 2-3 轮项目追问，重点看实现细节、个人贡献和实验依据。
           </p>
         </div>
       </div>
 
       <label>
-        Self-introduction
+        自我介绍
         <textarea
           value={props.profile.self_introduction}
           onChange={(event) => update("self_introduction", event.target.value)}
-          placeholder="CS/AI background, current year, research interests..."
+          placeholder="学校年级、专业背景、研究方向和代表经历..."
           rows={4}
           required
         />
       </label>
       <label>
-        Project or research experience
+        项目或科研经历
         <textarea
           value={props.profile.project_experience}
           onChange={(event) => update("project_experience", event.target.value)}
-          placeholder="Problem, method, your contribution, results, and evaluation..."
+          placeholder="问题、方法、你的贡献、实验结果和评价指标..."
           rows={6}
           required
         />
       </label>
       <div className="form-grid">
         <label>
-          Target direction
+          目标方向
           <input
             value={props.profile.target_direction}
             onChange={(event) => update("target_direction", event.target.value)}
-            placeholder="Research internship, lab admission, graduate interview..."
+            placeholder="保研面试、实验室面试、科研实习..."
             required
           />
         </label>
         <label>
-          Weak points
+          担心被追问的点
           <input
             value={props.profile.weak_points}
             onChange={(event) => update("weak_points", event.target.value)}
-            placeholder="Metrics, motivation, technical depth..."
+            placeholder="指标、动机、技术细节、个人贡献..."
           />
         </label>
       </div>
@@ -588,7 +586,7 @@ function ProfileForm(props: {
         <label className="file-picker">
           <FileText size={18} />
           <span>
-            Add notes, diagrams, or PDF pages
+            添加项目笔记、图表或 PDF
             <small>TXT, MD, JSON, CSV, PNG, JPEG, WebP, GIF, PDF</small>
           </span>
           <input
@@ -614,7 +612,7 @@ function ProfileForm(props: {
                 </span>
                 <button
                   type="button"
-                  title="Remove attachment"
+                  title="移除附件"
                   onClick={() => props.removeProfileAttachment(attachment.id)}
                 >
                   <Trash2 size={14} />
@@ -626,7 +624,7 @@ function ProfileForm(props: {
       </section>
       <button className="primary-button wide" type="submit" disabled={!props.canStart || props.working}>
         {props.working ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
-        Start interview
+        开始面试
       </button>
     </form>
   );
@@ -655,8 +653,8 @@ function InterviewRoom(props: {
           <Bot size={22} />
         </div>
         <div>
-          <p className="eyebrow">Current question</p>
-          <h2>{props.activeTurn?.question ?? "Interview complete"}</h2>
+          <p className="eyebrow">当前问题</p>
+          <h2>{props.activeTurn?.question ?? "面试已完成"}</h2>
         </div>
       </section>
 
@@ -665,12 +663,12 @@ function InterviewRoom(props: {
           <textarea
             value={props.answer}
             onChange={(event) => props.setAnswer(event.target.value)}
-            placeholder="Answer as you would in an interview. Include your role, method, evidence, and tradeoffs."
+            placeholder="请像真实面试一样用中文回答，说明你的角色、方法、证据和取舍。"
             rows={6}
           />
           <button className="send-button text" disabled={!props.answer.trim() || props.working} type="submit">
             {props.working ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
-            Submit answer
+            提交回答
           </button>
         </form>
       ) : null}
@@ -680,16 +678,16 @@ function InterviewRoom(props: {
       ) : null}
 
       {visibleTurn ? (
-        <section className="qa-review-panel" aria-label="Answered questions">
+        <section className="qa-review-panel" aria-label="已回答问题">
           <div className="qa-review-header">
             <div>
-              <p className="eyebrow">Answered Q&A</p>
-              <h3>Question {visibleTurn.turn_index} of {props.answeredTurns.length}</h3>
+              <p className="eyebrow">回答复盘</p>
+              <h3>第 {visibleTurn.turn_index} 题 / 共 {props.answeredTurns.length} 题</h3>
             </div>
             <div className="pager-controls">
               <button
                 type="button"
-                title="Previous answer"
+                title="上一题"
                 disabled={visibleTurnIndex === 0}
                 onClick={() => setVisibleTurnIndex((current) => Math.max(current - 1, 0))}
               >
@@ -697,7 +695,7 @@ function InterviewRoom(props: {
               </button>
               <button
                 type="button"
-                title="Next answer"
+                title="下一题"
                 disabled={visibleTurnIndex >= props.answeredTurns.length - 1}
                 onClick={() =>
                   setVisibleTurnIndex((current) =>
@@ -732,12 +730,12 @@ function FeedbackCard({ feedback }: { feedback: NonNullable<Interview["turns"][n
         <div className="score-pill">{feedback.score ?? "?"}/10</div>
       </div>
       <div className="feedback-comparison">
-        <ListBlock title="Strengths" items={feedback.strengths ?? []} />
-        <ListBlock title="Risk points" items={feedback.weaknesses ?? []} />
+        <ListBlock title="做得好的点" items={feedback.strengths ?? []} />
+        <ListBlock title="风险点" items={feedback.weaknesses ?? []} />
       </div>
       {feedback.advice ? (
         <div className="advice-row">
-          <h3>Rewrite direction</h3>
+          <h3>改写方向</h3>
           <p>{feedback.advice}</p>
         </div>
       ) : null}
@@ -749,13 +747,13 @@ function ReportCard({ report }: { report: NonNullable<Interview["final_report"]>
   return (
     <section className="report-card">
       <div>
-        <p className="eyebrow">Final report</p>
-        <h2>{report.overall_score ?? "?"}/10 overall</h2>
+        <p className="eyebrow">最终报告</p>
+        <h2>总分 {report.overall_score ?? "?"}/10</h2>
         <p>{report.summary}</p>
       </div>
-      <ListBlock title="Strengths" items={report.strengths ?? []} />
-      <ListBlock title="Vulnerable follow-up points" items={report.weaknesses ?? []} />
-      <ListBlock title="24-hour practice plan" items={report.next_steps ?? []} />
+      <ListBlock title="优势" items={report.strengths ?? []} />
+      <ListBlock title="脆弱追问点" items={report.weaknesses ?? []} />
+      <ListBlock title="24 小时训练计划" items={report.next_steps ?? []} />
     </section>
   );
 }

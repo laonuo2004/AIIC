@@ -1,3 +1,5 @@
-Please push me on research motivation, technical depth, evaluation design, and limitations. In particular, ask why graph structures are necessary for multimodal RAG, how my methods differ from standard retrieval or message passing baselines, what the key assumptions and failure cases are, how I design ablation studies and metrics, and how I would defend the novelty and significance of my first-author projects.
+请重点追问研究动机、技术深度、实验设计和局限。
 
-You can also challenge me on theoretical foundations such as graph neural networks, retrieval-augmented generation, multimodal representation learning, LLM agents, benchmark design, and basic machine learning concepts. Please ask follow-up questions if my answer is too general, lacks concrete experimental evidence, or does not clearly explain my personal contribution.
+我最担心的问题包括：为什么多模态 RAG 需要图结构；我的方法和普通检索或消息传递 baseline 有什么区别；关键假设和失败案例是什么；消融实验和指标如何设计；一作工作的创新性和意义如何证明。
+
+如果我的回答太泛、缺少实验依据或个人贡献不清，请继续追问。

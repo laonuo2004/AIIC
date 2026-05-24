@@ -1,9 +1,9 @@
-My current research experience mainly focuses on multimodal graph learning and graph-enhanced RAG.
+我的科研经历主要集中在多模态图学习和图增强 RAG。
 
-First, I worked on OpenMAG: A Comprehensive Benchmark for Multimodal-Attributed Graph, which has been accepted by ICML 2026. In this project, I participated in building a unified benchmark for multimodal attributed graph learning. I was responsible for processing 8 sub-datasets, extracting embeddings, integrating and training methods such as UniGraph2 and DMGC, and contributing to multimodal retrieval task design and experimental analysis.
+OpenMAG 是一个多模态属性图 benchmark，已被 ICML 2026 接收。我参与统一 benchmark 构建，负责 8 个子数据集处理、embedding 提取、UniGraph2/DMGC 等方法集成训练，并参与多模态检索任务设计和实验分析。
 
-Second, I am the first author of RoleMAG: Learning Neighbor Roles in Multimodal Graphs, which is currently under review at ACM MM 2026. This work studies how to model different roles of neighboring nodes in multimodal attributed graphs. I independently completed the problem formulation, method design, experimental framework, baseline reproduction, ablation studies, and result analysis. The core motivation is that neighbors may provide different types of utility across modalities and graph structures, so treating all neighbors uniformly may limit multimodal message passing.
+RoleMAG 是我一作推进的多模态图学习工作，目前投稿 ACM MM 2026。它关注多模态图中邻居节点的不同角色建模。我独立完成问题定义、方法设计、实验框架、baseline 复现、消融实验和结果分析。核心动机是：不同邻居在模态和结构上的贡献不同，统一聚合会限制消息传递效果。
 
-Third, I participated in When LLM Agents Meet Graph Optimization, a NeurIPS 2026 submission. This project explores how LLM agents can automatically improve graph data quality. I contributed to dataset collection, preprocessing, evaluation code implementation, and designed a multi-agent four-stage prototype workflow.
+我还参与了 LLM Agent 图优化项目，投稿 NeurIPS 2026，负责数据收集、预处理、评测代码和四阶段多智能体原型。
 
-Finally, I am leading an ongoing project called LoGMA-RAG: Graph-based Retrieval-Augmented Generation for Long Multimodal Document QA. This project studies long-document multimodal question answering, especially how to organize external evidence with graph structures and improve reliable evidence localization. The current focus is on diagnosing retrieval failures, evidence incompleteness, and cross-page multimodal reasoning difficulties in long PDF-style documents.
+当前我主导 LoGMA-RAG，一作项目，目标是面向长多模态文档问答，用图结构组织外部证据，提升证据定位可靠性。现在重点分析检索失败、证据不完整和跨页多模态推理困难。

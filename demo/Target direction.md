@@ -1,1 +1,1 @@
-Graduate research interview / lab admission / research internship in AI, especially for multimodal learning, graph learning, LLM agents, RAG, long-document question answering, and reliable evidence-grounded reasoning.
+AI 方向保研科研面试、实验室面试或科研实习面试。重点方向：多模态学习、图学习、LLM Agent、RAG、长文档问答和基于证据的可靠推理。

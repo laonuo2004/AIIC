@@ -476,3 +476,8 @@ Remaining verification gap:
 - Finish interview and show final report.
 - If face-to-face page is ready, show it briefly as the bridge from text practice to realistic interview simulation.
 - End with engineering summary: FastAPI, Next.js, SQLite, LiteLLM/OpenRouter, Docker/Nginx, tests.
+# 2026-05-24 Chinese Prompt Stabilization
+
+- Shifted ResearchMocker prompt behavior toward concise Chinese inputs and outputs for domestic CS/AI interview users and Qwen model stability.
+- Simplified demo project-card materials and demo script so the first 30 seconds can show project deep-dive value with shorter prompts and smaller context.
+- Kept the existing JSON schema and text interview workflow unchanged.
