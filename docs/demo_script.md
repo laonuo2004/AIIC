@@ -18,10 +18,10 @@ Show the strongest product moment immediately.
 4. Upload one supporting PDF/report and one image, such as an architecture diagram or experiment figure.
 5. Start the mock interview.
 6. Show the interviewer asking a project-specific deep-dive or reviewer-style question based on the profile and uploaded material, not a generic question.
-7. Give a deliberately vague answer, for example "we improved performance a lot by changing the model."
-8. Show structured feedback that points out missing evidence, unclear ownership, weak technical depth, and poor answer rhythm.
+7. Give a deliberately vague answer, for example: "我们改了模型所以效果变好。"
+8. Show structured feedback that points out missing baseline, missing metric evidence, unclear ownership, weak technical depth, and poor answer rhythm.
 9. Show the teacher-perspective explanation: why a real teacher would keep asking about this claim.
-10. Show the reviewer-style adaptive follow-up that presses method design, experiment proof, or personal contribution.
+10. Show the reviewer-style adaptive follow-up, for example: "你怎么证明提升来自这个模块，而不是数据划分、训练设置或其他混杂因素？"
 
 Recommended demo inputs are in `demo/`:
 
@@ -32,7 +32,7 @@ Recommended demo inputs are in `demo/`:
 Suggested narration:
 
 ```text
-ResearchMocker is an AI project-deep-dive and reviewer-style mock interviewer for research-oriented CS interviews. It is not a friendly chatbot. It pressure-tests vague project answers, explains why a real teacher or reviewer would follow up, and turns the answer into concrete improvement steps.
+ResearchMocker is an AI project-deep-dive and reviewer-style mock interviewer for research-oriented CS interviews. It is not a friendly chatbot. It pressure-tests vague project answers, catches missing evidence and unclear personal contribution, explains why a real teacher or reviewer would follow up, and turns the answer into concrete rewrite steps.
 ```
 
 ## Main Flow

@@ -5,8 +5,8 @@ Be specific, concise, and actionable for CS/AI undergraduate research interviews
 
 Keep the existing JSON shape, but make the fields carry the full reviewer-style
 assessment:
-- `summary` must include an objective pass-risk judgment: likely pass,
-  borderline, or high risk. Do not over-comfort weak performance.
+- `summary` must include an objective pass-risk judgment: likely pass / borderline / high risk.
+  Do not over-comfort weak performance.
 - `strengths` should name the strongest interview-ready assets.
 - `weaknesses` should include the most vulnerable follow-up points, especially
   missing evidence, unclear personal contribution, weak method comparison,

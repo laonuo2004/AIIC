@@ -274,8 +274,8 @@ export function ChatApp() {
           <p className="eyebrow">Research interview practice</p>
           <h1 id="auth-title">ResearchMocker</h1>
           <p className="auth-copy">
-            Practice project deep dives with adaptive follow-up questions, structured feedback,
-            and a final review report.
+            Practice project deep-dive pressure drills with adaptive teacher-style questions,
+            risk-point feedback, and a final review report.
           </p>
 
           <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
@@ -539,7 +539,8 @@ function ProfileForm(props: {
           <p className="eyebrow">Candidate profile</p>
           <h1>Start a focused mock interview</h1>
           <p className="muted">
-            The interviewer uses this context to ask one question at a time and push on weak spots.
+            You will enter 2-3 rounds of project deep dive practice focused on details,
+            personal contribution, and experiment evidence.
           </p>
         </div>
       </div>
@@ -732,11 +733,11 @@ function FeedbackCard({ feedback }: { feedback: NonNullable<Interview["turns"][n
       </div>
       <div className="feedback-comparison">
         <ListBlock title="Strengths" items={feedback.strengths ?? []} />
-        <ListBlock title="Weaknesses" items={feedback.weaknesses ?? []} />
+        <ListBlock title="Risk points" items={feedback.weaknesses ?? []} />
       </div>
       {feedback.advice ? (
         <div className="advice-row">
-          <h3>Next step</h3>
+          <h3>Rewrite direction</h3>
           <p>{feedback.advice}</p>
         </div>
       ) : null}
@@ -753,8 +754,8 @@ function ReportCard({ report }: { report: NonNullable<Interview["final_report"]>
         <p>{report.summary}</p>
       </div>
       <ListBlock title="Strengths" items={report.strengths ?? []} />
-      <ListBlock title="Weaknesses" items={report.weaknesses ?? []} />
-      <ListBlock title="Next steps" items={report.next_steps ?? []} />
+      <ListBlock title="Vulnerable follow-up points" items={report.weaknesses ?? []} />
+      <ListBlock title="24-hour practice plan" items={report.next_steps ?? []} />
     </section>
   );
 }

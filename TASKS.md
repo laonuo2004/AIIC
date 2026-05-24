@@ -131,6 +131,7 @@ Current completion snapshot:
 - Backend schema validation is aligned with that behavior to avoid false `422` errors.
 - QA feedback layout has been manually checked by the developer after UI fixes.
 - Docker build mirrors and server disk capacity have been adjusted for reliable rebuilds.
+- Current low-risk improvement direction: preserve the existing feedback/report schema while making prompts, UI labels, and demo copy emphasize project anti-follow-up training, missing evidence, personal contribution clarity, rewrite direction, vulnerable follow-up points, and a 24-hour practice plan.
 
 ## P0.5: High-Value And Low-Cost
 
