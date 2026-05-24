@@ -166,6 +166,16 @@ Reason:
 
 Add entries below as changes are made.
 
+### 2026-05-24: v0.3 Release Notes
+
+Highlights:
+
+- Shipped the text interview MVP with project-card driven interviews.
+- Added adaptive follow-up questions with reviewer-style pressure.
+- Added structured per-answer feedback and final report outputs.
+- Persisted interview sessions, turns, and attachments.
+- Added backend tests for interview flows and reliability fixes for LLM outputs.
+
 ### 2026-05-24: Text Interview MVP Implemented
 
 Change:
