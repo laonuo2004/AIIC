@@ -1,6 +1,6 @@
 # ResearchMocker
 
-ResearchMocker is an AI mock interviewer for CS/AI undergraduate students preparing for research-oriented interviews. It focuses on project and research-experience deep dives: the user provides background material, the AI interviewer asks targeted questions, follows up on vague answers, gives structured feedback, and produces a final review report.
+ResearchMocker is an AI project-deep-dive and reviewer-style mock interviewer for CS/AI undergraduate students preparing for research-oriented interviews. It focuses on the hardest part of graduate recommendation, research internship, and lab admission interviews: defending a real project under continuous follow-up questions.
 
 Public demo: http://115.190.120.206/
 
@@ -8,16 +8,24 @@ Health check: http://115.190.120.206/health
 
 ## Product Positioning
 
-Many students preparing for graduate recommendation interviews, research internships, or lab admission interviews have project experience but lack realistic practice and actionable feedback. ResearchMocker aims to close that gap with a narrow workflow:
+Many students preparing for graduate recommendation interviews, research internships, or lab admission interviews have project experience but lack realistic practice and actionable feedback. Recent lightweight user research showed that students are especially worried about vague project answers being challenged by teachers or reviewers: why this design was chosen, whether alternatives were tried, whether experiments prove the claim, what part was personally done by the candidate, and whether the project story is convincing.
 
-1. Enter candidate profile, target direction, project/research experience, and weak points.
+ResearchMocker aims to close that gap with a narrow workflow:
+
+1. Enter a project card: candidate profile, target direction, project/research experience, personal contribution, evidence, and weak points.
 2. Start a mock interview.
-3. Answer one question at a time.
-4. Receive structured feedback after each answer.
-5. Continue with adaptive follow-up questions.
-6. Finish with a final review report and next-step practice plan.
+3. Answer one project-deep-dive question at a time.
+4. Receive structured feedback after each answer, including teacher-perspective explanation and answer rhythm feedback.
+5. Continue with adaptive follow-up questions that press on vague or unsupported claims, including reviewer-style method and experiment challenges.
+6. Finish with a final review report, objective pass-risk judgment, and next-step practice plan.
 
-The product should be better than plain ChatGPT because it enforces an interview workflow, focuses on project/research depth, exposes unsupported claims, and turns each answer into concrete feedback.
+The product should be better than plain ChatGPT because it enforces an interview workflow, focuses on project/research depth, exposes unsupported claims, controls interview rhythm, reuses saved context when available, and turns each answer into concrete feedback.
+
+Value proposition:
+
+```text
+Not a friendly chatbot, but a realistic research interview pressure test that catches vague answers, asks follow-up questions, and gives actionable feedback.
+```
 
 ## Current Implementation Status
 
@@ -36,17 +44,18 @@ Still planned:
 - Real Volcengine face-to-face speech/video integration.
 - Richer attachments inside the interview prompt context.
 - Exportable final report.
+- Stronger long-term personalization across practice sessions.
 
 ## Core Features
 
 MVP:
 
 - Text-based mock interview for research/project deep dives.
-- Candidate setup with self-introduction, project experience, target direction, and weak points.
+- Project card setup with self-introduction, project experience, target direction, personal contribution, key methods, experiments/results, failure cases, and weak points.
 - One-question-at-a-time interview flow.
 - Adaptive follow-up based on the candidate's previous answer.
-- Structured feedback with strengths, weaknesses, score, and actionable advice.
-- Final report covering technical depth, project ownership, research thinking, communication clarity, and next practice steps.
+- Structured feedback with strengths, weaknesses, score, teacher/reviewer perspective, answer rhythm/length feedback, and actionable advice.
+- Final report covering technical depth, project ownership, research thinking, communication clarity, pass-risk judgment, vulnerable follow-up points, and next practice steps.
 - Login and saved interview records.
 
 Optional differentiator:
@@ -251,8 +260,8 @@ Target 3-minute demo:
 3. Enter a candidate profile and project summary.
 4. Start a mock interview.
 5. Show the AI asking a targeted project/research question.
-6. Give a vague answer so the product exposes the weakness.
-7. Show structured feedback and an adaptive follow-up question.
+6. Give a vague answer so the product exposes missing evidence or unclear personal contribution.
+7. Show structured feedback, teacher-perspective explanation, rhythm feedback, and an adaptive follow-up question.
 8. Finish and show the final review report.
 9. Briefly show engineering stack and deployment.
 

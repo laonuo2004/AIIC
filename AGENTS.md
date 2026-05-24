@@ -2,16 +2,32 @@
 
 ## 1. Project Context
 
-This repository is for **ResearchMocker**, a focused AI mock interview product.
+This repository is for **ResearchMocker**, a focused AI project-deep-dive and reviewer-style mock interview product.
 
 The product goal is to help CS/AI undergraduate students prepare for research-oriented interviews, including graduate recommendation interviews, research internship interviews, lab admission interviews, and project-experience deep-dive interviews.
+
+Latest positioning:
+
+```text
+An AI project-deep-dive and reviewer-style mock interviewer for CS/AI undergraduate research interviews.
+面向 CS/AI 本科生保研科研面试的项目深挖与审稿人式追问 AI 面试官。
+```
+
+Core value proposition:
+
+```text
+Not a friendly chatbot, but a realistic research interview pressure test that catches vague answers, asks follow-up questions, and gives actionable feedback.
+```
 
 The product should demonstrate:
 
 - A realistic interview workflow, not a generic chatbot.
 - Adaptive follow-up questions based on the candidate's previous answer.
+- Strict but professional research-interviewer behavior, including reviewer-like questioning when method or experiment claims are weak.
 - Structured, actionable feedback after answers.
-- A final review report with scores, weaknesses, and next-step practice suggestions.
+- Teacher-perspective explanations for why a real interviewer would ask follow-up questions.
+- Answer rhythm and length feedback for concise 1-2 minute interview answers.
+- A final review report with scores, pass-risk judgment, weaknesses, and next-step practice suggestions.
 - Reliable full-stack engineering, persistence, tests, and public deployment.
 
 Optimize for:
@@ -19,7 +35,9 @@ Optimize for:
 ```text
 working product > unfinished ambition
 interview workflow > generic chat
+project deep dive > broad interview platform
 structured feedback > vague encouragement
+objective pass-risk > over-comforting
 stable deployment > experimental complexity
 demo reliability > feature quantity
 ```
@@ -139,22 +157,43 @@ Treat this baseline as reusable infrastructure. Do not recreate the project from
 
 ResearchMocker must feel like an interview product, not a generic chat wrapper.
 
+Recent lightweight user research with CS/AI undergraduates showed the most painful interview scenario is not "I do not know the answer." The sharper pain is that a student gives an answer that sounds polished but cannot survive continued project-detail questioning.
+
+Discovered user pain points:
+
+- Teachers keep digging into why a design was chosen, whether alternatives were tried, and whether experiments prove the claim.
+- Some interviews feel like a rebuttal session: the examiner continuously challenges research logic, method design, related-method comparison, and module necessity.
+- Students worry that they cannot clearly separate personal contribution from team/project background.
+- Vague statements, unsupported metrics, missing failure cases, and generic motivation are easy to expose in real interviews.
+- Directly using ChatGPT is often too friendly, too generic, and requires strong prompting skill from the student.
+- Directly using ChatGPT is stateless unless the user repeatedly pastes profile, goals, project descriptions, weaknesses, and previous practice history.
+- Students want specific advice: what evidence is missing, why a real teacher would follow up, how to rewrite the answer, and what to practice next.
+- Students want objective judgment, including whether the current performance is likely to pass, borderline, or high risk.
+- Interview rhythm matters: answers should usually be concise enough for a 1-2 minute oral response.
+
 Required product behavior:
 
-- The user enters a candidate profile: self-introduction, project/research experience, target direction, and weak points.
+- The user enters a project card and candidate profile: self-introduction, project/research experience, target direction, weak points, key methods, experiments/results, personal contribution, and failure cases when available.
 - The system starts a mock interview session.
 - The AI interviewer asks one question at a time.
 - Follow-up questions must react to the candidate's previous answer.
-- The interviewer should identify vague claims, unsupported metrics, unclear contribution, weak motivation, and missing technical depth.
-- Each answer should receive structured feedback: strengths, weaknesses, score, and actionable advice.
+- The interviewer may use a reviewer-like or rebuttal-like questioning style when evaluating method design, experimental proof, related-method comparison, project story clarity, and personal contribution.
+- The interviewer should identify vague claims, unsupported metrics, unclear contribution, weak motivation, missing technical depth, unproven experiment claims, missing comparison/failure analysis, and unclear project storytelling.
+- Each answer should receive structured feedback: strengths, weaknesses, score, teacher-perspective explanation, rhythm/length feedback, and actionable advice.
+- Feedback must be objective. Do not always say the user can pass; if an answer is weak, explicitly state why the current performance is risky in a real interview.
+- Maintain professionalism: strict questioning is allowed, but personal attacks, humiliation, and hostile wording are not.
 - The user can finish the interview and receive a final report.
+- The final report should include overall score, pass-risk judgment, top reasons, vulnerable follow-up points, project story clarity, personal contribution clarity, method-comparison weakness when applicable, and a next 24-hour training plan.
 - Records should be saved or at least clearly displayed during the session.
+- Long-term personalization is an important product direction. In the 16-hour MVP, implement it only when low-cost through saved user profile, project card, weakness notes, session history, and previous feedback summaries.
 
 Product differentiation:
 
 - Better than plain ChatGPT because it enforces an interview workflow.
 - Better than plain ChatGPT because it asks adaptive follow-up questions.
 - Better than plain ChatGPT because it focuses on project/research deep dives.
+- Better than plain ChatGPT because it remembers or reuses candidate context when persistence is available.
+- Better than plain ChatGPT because it pressures weak claims instead of being broadly encouraging.
 - Better than plain ChatGPT because it produces structured feedback and a final review report.
 
 Avoid:
@@ -174,10 +213,10 @@ Priority order:
 
 ```text
 1. Publicly accessible working product
-2. Text mock interview MVP
-3. Adaptive follow-up questions
-4. Structured feedback
-5. Final review report
+2. Project card input and text project-deep-dive interview MVP
+3. Adaptive follow-up questions that press on weak or vague answers
+4. Structured feedback with teacher perspective, reviewer-style pressure, and answer rhythm feedback
+5. Final review report with pass-risk judgment and next 24-hour training plan
 6. Stable backend/frontend integration
 7. SQLite persistence and login/test account
 8. Backend tests
@@ -259,11 +298,27 @@ backend/app/prompts/
 Recommended prompt responsibilities:
 
 - Interviewer persona and boundaries.
+- Standard/sharp interview style control.
+- Reviewer-style/rebuttal-style question generation.
 - Candidate profile analysis.
+- Project card analysis.
 - First question generation.
 - Follow-up question generation.
 - Single-answer structured feedback.
+- Teacher-perspective explanation.
+- Answer rhythm and length assessment.
+- Objective pass-risk assessment.
+- Project story clarity and personal contribution clarity assessment.
+- Method-comparison weakness detection.
 - Final report generation.
+
+Prompt guidance:
+
+- Ask reviewer-style questions when the answer makes unproven claims.
+- Challenge vague statements such as "our module improves performance", "we designed a better method", "we achieved good results", or "I was responsible for the model".
+- Ask why a module is necessary, what alternative methods were considered, how experiments prove the claim, whether improvements come from the proposed method or confounders, what the candidate personally implemented, and how to tell the project story convincingly.
+- Provide objective feedback and do not over-comfort the user.
+- If the answer is weak, explicitly explain why it is risky in a real interview.
 
 Structured LLM outputs should prefer JSON-compatible shapes for backend validation when practical. Do not hide critical product logic only inside prompts.
 

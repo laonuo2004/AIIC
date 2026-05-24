@@ -2,12 +2,18 @@
 
 ## Product Interpretation
 
-ResearchMocker is a focused AI mock interviewer for CS/AI undergraduate students preparing for research-oriented interviews. The product is intentionally narrow: it helps users practice explaining project and research experience under realistic follow-up pressure.
+ResearchMocker is a focused AI project-deep-dive and reviewer-style mock interviewer for CS/AI undergraduate students preparing for research-oriented interviews. The product is intentionally narrow: it helps users practice defending project and research experience under realistic teacher-style and reviewer-style follow-up pressure.
 
 The goal is not to build a broad interview platform. The goal is to create a complete training loop:
 
 ```text
-candidate profile -> targeted question -> answer -> structured feedback -> adaptive follow-up -> final report
+project card -> project deep-dive -> reviewer-style follow-up -> structured feedback -> final training plan
+```
+
+Value proposition:
+
+```text
+Not a friendly chatbot, but a realistic research interview pressure test that catches vague answers, asks follow-up questions, and gives actionable feedback.
 ```
 
 ## Target Users
@@ -24,11 +30,34 @@ Typical pain points:
 - They lack experienced seniors or professionals for repeated mock interviews.
 - They receive vague advice such as "be clearer" instead of actionable feedback.
 - They struggle when interviewers challenge ownership, motivation, metrics, novelty, or technical tradeoffs.
+- They are afraid that polished but unsupported answers will fail when teachers ask for project details.
+- They need practice keeping answers concise, structured, and suitable for a 1-2 minute oral response.
+- They want strict but professional reviewer-like challenges on research logic, method design, experiment proof, and related-method comparison.
+- They want objective final feedback that can say likely pass, borderline, or high risk.
+- They want a long-term coach that remembers profile, target scenario, project summaries, weaknesses, and practice history.
+
+Recent questionnaire findings:
+
+- Project-detail follow-up is the highest-pressure scenario.
+- Teachers often ask why a design was chosen, whether alternatives were tried, whether experiments prove the claim, and what the candidate personally contributed.
+- Plain ChatGPT practice is too friendly and too generic unless the user already knows how to prompt it.
+- Actionable feedback should explain what evidence is missing, why a real teacher would follow up, and how the answer can be rewritten.
+- A fourth anonymized response specifically described project questioning as possibly becoming like a rebuttal session.
+- Method-comparison questions and project storytelling clarity should be treated as interview success factors.
+- Long-term personalization is valuable, but the MVP should only implement low-cost memory through saved project cards, weakness notes, session history, and previous feedback summaries.
 
 ## Product Flow
 
 1. User logs in or uses a test account.
-2. User enters self-introduction, project/research experience, target direction, and weak points.
+2. User enters a project card:
+   - self-introduction
+   - target direction
+   - project/research background
+   - personal contribution
+   - key methods/design choices
+   - experiments/results
+   - failure cases or limitations
+   - weak points
 3. System analyzes the profile and starts an interview.
 4. AI interviewer asks one targeted question.
 5. User answers.
@@ -36,10 +65,14 @@ Typical pain points:
    - strengths
    - weaknesses
    - score
+   - teacher perspective: why a real teacher would ask this
+   - answer rhythm/length assessment
+   - project story clarity
+   - personal contribution clarity
    - actionable advice
-7. System asks a follow-up question based on the user's answer.
+7. System asks a follow-up question based on the user's answer, using reviewer-style pressure when claims are vague or unsupported.
 8. The loop continues for several turns.
-9. User finishes and receives a final report.
+9. User finishes and receives a final report with objective pass-risk judgment and a next 24-hour training plan.
 
 ## Why This Is Not Generic Chat
 
@@ -51,6 +84,11 @@ Key differences:
 - Adaptive follow-up questions.
 - Explicit evaluation of each answer.
 - Project/research deep-dive focus.
+- Teacher-style pressure on vague claims, missing evidence, and unclear ownership.
+- Reviewer-style pressure on method design, alternative methods, experiment proof, confounders, and project storytelling.
+- Objective pass-risk judgment instead of automatic encouragement.
+- Lightweight reuse of saved profile/project context when available.
+- Answer rhythm and length feedback.
 - Final report with practice suggestions.
 - Stable demo flow for a real target scenario.
 
@@ -103,13 +141,15 @@ Reuse the existing user/session foundation.
 
 Interview data should capture:
 
-- Candidate profile.
+- Project card and candidate profile.
 - Interview type or target direction.
+- Known weaknesses and target scenario.
 - Interview status.
 - Questions.
 - User answers.
 - Per-turn feedback.
 - Final report.
+- Previous feedback summary when low-cost.
 - Timestamps and ownership.
 
 SQLite is sufficient for this challenge-scale deployment and keeps operations simple.
@@ -139,13 +179,56 @@ Both selected models are treated as supporting text, image, and video input base
 Prompt files should be split by responsibility:
 
 - Interviewer persona.
+- Standard/sharp interview style.
+- Reviewer-style/rebuttal-style questioning.
+- Project card analysis.
 - Candidate profile analysis.
 - First question generation.
 - Follow-up question generation.
 - Single-answer feedback.
+- Teacher-perspective explanation.
+- Answer rhythm and length assessment.
+- Objective pass-risk assessment.
+- Project story clarity assessment.
+- Personal contribution clarity assessment.
+- Method-comparison weakness detection.
 - Final report generation.
 
 Structured outputs should use JSON-like fields when practical so the backend can render consistent UI sections.
+
+Recommended feedback shape:
+
+```text
+strengths
+weaknesses
+teacher_perspective
+missing_evidence
+rhythm_feedback
+rewrite_suggestion
+score
+next_question
+```
+
+Recommended final report shape:
+
+```text
+overall_score
+pass_risk: likely_pass | borderline | high_risk
+top_3_reasons
+most_vulnerable_follow_up_points
+project_story_clarity
+personal_contribution_clarity
+method_comparison_weakness
+language_and_expression_issues
+next_24_hour_training_plan
+```
+
+Interviewer prompt guidance:
+
+- Ask reviewer-style questions when the answer makes unproven claims.
+- Challenge vague statements like "our module improves performance", "we designed a better method", "we achieved good results", or "I was responsible for the model".
+- Ask why a module is necessary, what alternatives were considered, how experiments prove the claim, whether gains may come from confounders, what the candidate personally implemented, and whether the project story is convincing.
+- Keep the tone strict but professional. The system may say an answer is high risk, but must not insult the user.
 
 ## Face-to-Face Interview Extension
 

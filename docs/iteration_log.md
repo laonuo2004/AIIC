@@ -42,6 +42,50 @@ Problem with baseline:
 
 ## Decisions
 
+### Narrow To Project-Deep-Dive Pressure Test
+
+Decision:
+
+- Narrow the product from a generic AI mock interviewer to a project-deep-dive interviewer for CS/AI research interviews.
+- Previous positioning at this stage: "面向 CS/AI 本科生保研科研面试的项目深挖型 AI 面试官。"
+
+Reason:
+
+- Lightweight questionnaire feedback showed students are most worried about teachers continuously digging into project details.
+- The highest-value pain is not simply "I do not know the answer"; it is "my answer sounds smooth but has no evidence, ownership, or technical depth under follow-up."
+- Direct ChatGPT practice is often too friendly, too generic, and too dependent on the student's prompting ability.
+
+Product consequences:
+
+- Add project card input as the main entry point.
+- Prioritize adaptive project follow-up questions.
+- Add teacher-perspective explanation to feedback.
+- Add answer rhythm/length feedback for concise 1-2 minute responses.
+- Treat standard/sharp interview style as a high-value, low-cost feature.
+- Keep face-to-face mode optional until the text MVP is reliable.
+
+### Add Reviewer-Style Pressure And Objective Pass-Risk
+
+Decision:
+
+- Refine positioning to: "面向 CS/AI 本科生保研科研面试的项目深挖与审稿人式追问 AI 面试官。"
+- Add reviewer-style/rebuttal-style questioning as a high-value mode, without broadening beyond project deep dives.
+- Add objective pass-risk judgment to the final report: likely pass, borderline, or high risk.
+- Treat long-term personalization as important, but only implement low-cost memory during the MVP.
+
+Reason:
+
+- A fourth anonymized research response described project-detail questioning as potentially becoming like a rebuttal session.
+- The user specifically wanted method-design challenges, related-method comparisons, personal-contribution clarification, and project story clarity feedback.
+- The user also highlighted that plain ChatGPT lacks long-term personalized context and tends to require re-pasting the same profile/project material.
+- Objective feedback matters more than comfort: the product should be allowed to say current performance may not pass if the answer is weak.
+
+Product consequences:
+
+- Keep P0 focused on project card, project deep-dive, adaptive follow-up, structured feedback, final report, and deployment.
+- Strengthen P0.5 with reviewer-style questions, pass-risk final report, method-comparison follow-ups, personal contribution clarification, project story clarity, and saved project profile if low-cost.
+- Move full long-term memory, semantic parsing, large question banks, advanced analytics, voice, and video to future work.
+
 ### Hide Provider Complexity
 
 Decision:
@@ -110,10 +154,14 @@ Cut from MVP:
 - User-configured API keys.
 - OAuth/email verification.
 - Mandatory PDF parsing.
+- Advanced analytics dashboard.
+- Multi-user admin system.
+- Complicated multi-agent architecture.
 
 Reason:
 
 - The product must be reliable and demoable under a tight deadline.
+- User research points to project-depth feedback as the clearest need, so broad feature coverage would dilute the product.
 
 ## Implementation Log
 
