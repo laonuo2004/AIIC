@@ -1,0 +1,9 @@
+My current research experience mainly focuses on multimodal graph learning and graph-enhanced RAG.
+
+First, I worked on OpenMAG: A Comprehensive Benchmark for Multimodal-Attributed Graph, which has been accepted by ICML 2026. In this project, I participated in building a unified benchmark for multimodal attributed graph learning. I was responsible for processing 8 sub-datasets, extracting embeddings, integrating and training methods such as UniGraph2 and DMGC, and contributing to multimodal retrieval task design and experimental analysis.
+
+Second, I am the first author of RoleMAG: Learning Neighbor Roles in Multimodal Graphs, which is currently under review at ACM MM 2026. This work studies how to model different roles of neighboring nodes in multimodal attributed graphs. I independently completed the problem formulation, method design, experimental framework, baseline reproduction, ablation studies, and result analysis. The core motivation is that neighbors may provide different types of utility across modalities and graph structures, so treating all neighbors uniformly may limit multimodal message passing.
+
+Third, I participated in When LLM Agents Meet Graph Optimization, a NeurIPS 2026 submission. This project explores how LLM agents can automatically improve graph data quality. I contributed to dataset collection, preprocessing, evaluation code implementation, and designed a multi-agent four-stage prototype workflow.
+
+Finally, I am leading an ongoing project called LoGMA-RAG: Graph-based Retrieval-Augmented Generation for Long Multimodal Document QA. This project studies long-document multimodal question answering, especially how to organize external evidence with graph structures and improve reliable evidence localization. The current focus is on diagnosing retrieval failures, evidence incompleteness, and cross-page multimodal reasoning difficulties in long PDF-style documents.

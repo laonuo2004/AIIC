@@ -1,0 +1,5 @@
+I am Yilong Zuo, a junior undergraduate student majoring in Computer Science and Technology at Beijing Institute of Technology. I rank 1st out of 115 students with a GPA of 3.9/4.0 and an average score of 92.96. My research interests lie in multimodal learning, graph learning, large language models, retrieval-augmented generation, and AI system implementation.
+
+Since May 2025, I have been a research assistant in Professor Ronghua Li’s group, working mainly on multimodal attributed graphs and LLM-based systems. I have participated in several research projects, including OpenMAG, an ICML 2026 accepted benchmark paper; RoleMAG, my first-author work under review at ACM MM 2026; an LLM-agent-based graph optimization project submitted to NeurIPS 2026; and my ongoing first-author project LoGMA-RAG for long multimodal document question answering.
+
+Besides research, I have strong engineering experience with Python, PyTorch, Linux, Git, LLaMA-Factory, and vLLM. I am familiar with dataset processing, model training, baseline reproduction, benchmark construction, unified evaluation, LLM fine-tuning, and multimodal model deployment.
