@@ -322,6 +322,10 @@ export function generateFaceVideos(assetId: number) {
   return request<FaceAsset>(`/api/face/assets/${assetId}/videos`, { method: "POST" });
 }
 
+export function pollFaceVideos(assetId: number) {
+  return request<FaceAsset>(`/api/face/assets/${assetId}/videos/poll`, { method: "POST" });
+}
+
 export function getFaceAsset(assetId: number) {
   return request<FaceAsset>(`/api/face/assets/${assetId}`);
 }

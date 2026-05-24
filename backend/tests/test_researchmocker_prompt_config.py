@@ -16,19 +16,32 @@ def test_interview_prompts_encode_reviewer_style_pressure_contracts():
     answer_feedback = _prompt("interview_answer_feedback.md")
     final_report = _prompt("interview_final_report.md")
 
-    assert "reviewer-style" in first_question
-    assert "Ask exactly one question." in first_question
-    assert "Prefer a single-sentence question." in first_question
+    assert "全部使用中文" in first_question
+    assert "审稿人式" in first_question
+    assert "只问一个问题" in first_question
+    assert "优先用一句话" in first_question
 
-    assert "missing evidence" in answer_feedback
-    assert "directly reuse" in answer_feedback
-    assert "personal contribution" in answer_feedback
+    assert "全部使用中文" in answer_feedback
+    assert "缺少证据" in answer_feedback
+    assert "老师视角" in answer_feedback
+    assert "节奏" in answer_feedback
+    assert "可以直接复述" in answer_feedback
+    assert "实现细节" in answer_feedback
+    assert "模块设计理由" in answer_feedback
+    assert "实验证据" in answer_feedback
+    assert "相关方法对比" in answer_feedback
+    assert "失败案例" in answer_feedback
+    assert "个人贡献边界" in answer_feedback
+    assert "只追问一个问题" in answer_feedback
     assert "follow_up_question" in answer_feedback
 
-    assert "pass-risk" in final_report
-    assert "24-hour training plan" in final_report
-    assert "borderline" in final_report
-    assert "high risk" in final_report
+    assert "全部使用中文" in final_report
+    assert "通过风险" in final_report
+    assert "24 小时训练计划" in final_report
+    assert "大概率通过 / 边缘 / 高风险" in final_report
+    assert "脆弱追问点" in final_report
+    assert "边缘" in final_report
+    assert "高风险" in final_report
 
 
 def test_default_interview_models_are_unified_on_plus():

@@ -229,7 +229,7 @@ def generate_first_question(
             {"profile": profile},
             model=model,
             attachments=attachments,
-            repair_schema='{"question":"one interview question"}',
+            repair_schema='{"question":"一个中文面试问题"}',
         )
         question = str(parsed.get("question") or "").strip()
         if not question:
@@ -239,7 +239,7 @@ def generate_first_question(
         raise
     except Exception:
         return {
-            "question": "What was your personal contribution to your most relevant project?",
+            "question": "你在最相关项目中的个人贡献是什么？",
             "model_used": model,
             "raw_text": None,
         }
@@ -255,7 +255,7 @@ def evaluate_answer_and_follow_up(
 ) -> dict[str, Any]:
     settings = get_settings()
     model = settings.interview_feedback_model
-    fallback_question = "Can you make your contribution more concrete with one metric or example?"
+    fallback_question = "你能用一个指标或例子把个人贡献说得更具体吗？"
     try:
         parsed, raw_text = _complete_json(
             "interview_answer_feedback.md",
@@ -269,8 +269,8 @@ def evaluate_answer_and_follow_up(
             attachments=attachments,
             repair_schema=(
                 '{"strengths":["specific strength"],"weaknesses":["specific weakness"],'
-                '"score":1,"advice":"actionable advice",'
-                '"follow_up_question":"one adaptive follow-up question"}'
+                '"score":1,"advice":"中文改写建议",'
+                '"follow_up_question":"一个中文追问"}'
             ),
         )
         feedback = {
@@ -278,7 +278,7 @@ def evaluate_answer_and_follow_up(
             "weaknesses": _safe_string_list(parsed.get("weaknesses")),
             "score": _safe_score(parsed.get("score")),
             "advice": str(parsed.get("advice") or "").strip()
-            or "Make the answer more specific and evidence-backed.",
+            or "请把回答改得更具体，并补充证据支撑。",
         }
         follow_up = str(parsed.get("follow_up_question") or "").strip() or fallback_question
         return {
@@ -290,10 +290,10 @@ def evaluate_answer_and_follow_up(
     except Exception:
         return {
             "feedback": {
-                "strengths": ["You provided enough context to continue the interview."],
-                "weaknesses": ["The answer needs clearer evidence, contribution, or metrics."],
+                "strengths": ["你提供了足够的上下文，可以继续追问。"],
+                "weaknesses": ["回答还需要更清楚的证据、个人贡献或指标。"],
                 "score": 5,
-                "advice": "Retry with a concise answer that states your role, method, and result.",
+                "advice": "请用更短的回答说明你的角色、方法和结果证据。",
             },
             "follow_up_question": fallback_question,
             "model_used": model,
@@ -316,9 +316,9 @@ def generate_final_report(
             model=model,
             attachments=attachments,
             repair_schema=(
-                '{"final_report":{"overall_score":1,"summary":"summary",'
-                '"strengths":["what worked"],"weaknesses":["what to fix"],'
-                '"next_steps":["practice action"]}}'
+                '{"final_report":{"overall_score":1,"summary":"中文总结",'
+                '"strengths":["优势"],"weaknesses":["脆弱追问点"],'
+                '"next_steps":["训练动作"]}}'
             ),
         )
         report = (
@@ -331,12 +331,9 @@ def generate_final_report(
         return {
             "report": {
                 "overall_score": 5,
-                "summary": (
-                    "The final report is temporarily unavailable, "
-                    "but the turn feedback remains available."
-                ),
-                "weaknesses": ["Try finishing again after adding at least one answered turn."],
-                "next_steps": ["Review each turn feedback and rerun the final report."],
+                "summary": "最终报告暂时不可用，但逐题反馈仍可用于复盘。",
+                "weaknesses": ["建议至少完成一轮回答后再生成最终报告。"],
+                "next_steps": ["先复盘每轮反馈，再重新生成最终报告。"],
             },
             "model_used": model,
             "raw_text": None,

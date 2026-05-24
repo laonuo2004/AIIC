@@ -51,6 +51,7 @@ import {
   listInterviews,
   login,
   logout,
+  pollFaceVideos,
   register,
   submitInterviewAnswer,
   uploadAttachments,
@@ -271,10 +272,10 @@ export function ChatApp() {
     return (
       <main className="auth-screen">
         <section className="auth-panel" aria-labelledby="auth-title">
-          <p className="eyebrow">科研面试训练</p>
+          <p className="eyebrow">保研科研面试</p>
           <h1 id="auth-title">ResearchMocker</h1>
           <p className="auth-copy">
-            面向 CS/AI 保研科研面试的项目深挖训练，包含老师式追问、风险点反馈和最终复盘报告。
+            帮你练项目追问：发现回答漏洞、补齐证据、讲清个人贡献。
           </p>
 
           <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
@@ -333,12 +334,12 @@ export function ChatApp() {
           RM
         </button>
         <nav className="rail-nav">
-          <RailButton active={view === "text"} label="文本面试" onClick={() => setView("text")}>
+          <RailButton active={view === "text"} label="模拟面试" onClick={() => setView("text")}>
             <MessageSquareText size={19} />
           </RailButton>
           <RailButton
             active={view === "face"}
-            label="面对面实验"
+            label="数字人面试"
             onClick={() => setView("face")}
           >
             <Video size={19} />
@@ -446,11 +447,11 @@ function TextInterviewWorkspace(props: {
     <div className="interview-layout">
       <aside className="session-panel">
         <div>
-          <p className="eyebrow">文本面试</p>
-          <h2>历史练习</h2>
+          <p className="eyebrow">模拟面试</p>
+          <h2>练习记录</h2>
         </div>
         <button className="secondary-button" onClick={props.resetInterviewDraft} type="button">
-          新练习
+          新建练习
         </button>
         <div className="session-list">
           {props.interviews.map((interview) => (
@@ -467,7 +468,7 @@ function TextInterviewWorkspace(props: {
             </button>
           ))}
           {props.interviews.length === 0 ? (
-            <p className="empty-note">还没有练习记录。先填写候选人资料。</p>
+            <p className="empty-note">还没有练习记录。先填写面试资料。</p>
           ) : null}
         </div>
       </aside>
@@ -476,7 +477,7 @@ function TextInterviewWorkspace(props: {
         <header className="workspace-header">
           <div>
             <p>{props.activeInterview?.title ?? "ResearchMocker"}</p>
-            <span>{props.user.username} · 项目深挖训练</span>
+            <span>{props.user.username} · 项目追问练习</span>
           </div>
           {props.activeInterview && props.activeInterview.status !== "finished" ? (
             <button className="secondary-button" onClick={props.finishActiveInterview} type="button" disabled={props.working}>
@@ -535,10 +536,10 @@ function ProfileForm(props: {
     <form className="profile-form" onSubmit={props.startInterview}>
       <div className="page-header compact">
         <div>
-          <p className="eyebrow">候选人资料</p>
-          <h1>开始一次项目深挖模拟面试</h1>
+          <p className="eyebrow">面试资料</p>
+          <h1>开始项目模拟面试</h1>
           <p className="muted">
-            接下来会进行 2-3 轮项目追问，重点看实现细节、个人贡献和实验依据。
+            接下来会连续追问 2-3 轮，重点看实现细节、个人贡献和实验依据。
           </p>
         </div>
       </div>
@@ -554,7 +555,7 @@ function ProfileForm(props: {
         />
       </label>
       <label>
-        项目或科研经历
+        项目经历
         <textarea
           value={props.profile.project_experience}
           onChange={(event) => update("project_experience", event.target.value)}
@@ -565,7 +566,7 @@ function ProfileForm(props: {
       </label>
       <div className="form-grid">
         <label>
-          目标方向
+          面试方向
           <input
             value={props.profile.target_direction}
             onChange={(event) => update("target_direction", event.target.value)}
@@ -574,7 +575,7 @@ function ProfileForm(props: {
           />
         </label>
         <label>
-          担心被追问的点
+          最担心的问题
           <input
             value={props.profile.weak_points}
             onChange={(event) => update("weak_points", event.target.value)}
@@ -586,7 +587,7 @@ function ProfileForm(props: {
         <label className="file-picker">
           <FileText size={18} />
           <span>
-            添加项目笔记、图表或 PDF
+            上传项目材料
             <small>TXT, MD, JSON, CSV, PNG, JPEG, WebP, GIF, PDF</small>
           </span>
           <input
@@ -640,11 +641,21 @@ function InterviewRoom(props: {
   working: boolean;
 }) {
   const [visibleTurnIndex, setVisibleTurnIndex] = useState(0);
+  const previousInterviewId = useRef(props.activeInterview.id);
+  const previousAnsweredLength = useRef(props.answeredTurns.length);
   const visibleTurn = props.answeredTurns[visibleTurnIndex] ?? null;
 
   useEffect(() => {
-    setVisibleTurnIndex((current) => Math.min(current, Math.max(props.answeredTurns.length - 1, 0)));
-  }, [props.answeredTurns.length]);
+    const latestIndex = Math.max(props.answeredTurns.length - 1, 0);
+    const interviewChanged = previousInterviewId.current !== props.activeInterview.id;
+    const answeredLengthIncreased = props.answeredTurns.length > previousAnsweredLength.current;
+
+    setVisibleTurnIndex((current) =>
+      interviewChanged || answeredLengthIncreased ? latestIndex : Math.min(current, latestIndex),
+    );
+    previousInterviewId.current = props.activeInterview.id;
+    previousAnsweredLength.current = props.answeredTurns.length;
+  }, [props.activeInterview.id, props.answeredTurns.length]);
 
   return (
     <div className="interview-room">
@@ -730,12 +741,12 @@ function FeedbackCard({ feedback }: { feedback: NonNullable<Interview["turns"][n
         <div className="score-pill">{feedback.score ?? "?"}/10</div>
       </div>
       <div className="feedback-comparison">
-        <ListBlock title="做得好的点" items={feedback.strengths ?? []} />
-        <ListBlock title="风险点" items={feedback.weaknesses ?? []} />
+        <ListBlock title="回答亮点" items={feedback.strengths ?? []} />
+        <ListBlock title="容易被追问的地方" items={feedback.weaknesses ?? []} />
       </div>
       {feedback.advice ? (
         <div className="advice-row">
-          <h3>改写方向</h3>
+          <h3>下次怎么答</h3>
           <p>{feedback.advice}</p>
         </div>
       ) : null}
@@ -752,8 +763,8 @@ function ReportCard({ report }: { report: NonNullable<Interview["final_report"]>
         <p>{report.summary}</p>
       </div>
       <ListBlock title="优势" items={report.strengths ?? []} />
-      <ListBlock title="脆弱追问点" items={report.weaknesses ?? []} />
-      <ListBlock title="24 小时训练计划" items={report.next_steps ?? []} />
+      <ListBlock title="最容易卡住的问题" items={report.weaknesses ?? []} />
+      <ListBlock title="明天前要练什么" items={report.next_steps ?? []} />
     </section>
   );
 }
@@ -776,6 +787,7 @@ type FaceStage =
   | "setup"
   | "preparing_voice"
   | "generating_videos"
+  | "generating_speaking"
   | "ready"
   | "listening"
   | "speaking"
@@ -787,20 +799,27 @@ function FaceWorkspace() {
   const [asset, setAsset] = useState<FaceAsset | null>(null);
   const [session, setSession] = useState<FaceSession | null>(null);
   const [stage, setStage] = useState<FaceStage>("setup");
-  const [statusLines, setStatusLines] = useState<string[]>(["Upload image and audio to start."]);
+  const [statusLines, setStatusLines] = useState<string[]>(["上传图片和音频后开始。"]);
   const [transcript, setTranscript] = useState("");
   const [assistantText, setAssistantText] = useState("");
   const [error, setError] = useState("");
   const [working, setWorking] = useState(false);
+  const [playBlocked, setPlayBlocked] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const canPrepare = Boolean(imageFile && audioFile && !working);
   const visualUrl =
-    stage === "speaking" && asset?.latest_speaking_video_url
+    (stage === "speaking" || stage === "generating_speaking") && asset?.latest_speaking_video_url
       ? asset.latest_speaking_video_url
+      : stage === "listening" && asset?.listening_video_url
+        ? asset.listening_video_url
       : asset?.ready_video_url || asset?.image_url || "";
+  const visualIsVideo = Boolean(
+    visualUrl && (visualUrl.endsWith(".mp4") || visualUrl.includes(".mp4?")),
+  );
 
   useEffect(() => {
     return () => {
@@ -809,8 +828,33 @@ function FaceWorkspace() {
     };
   }, []);
 
+  useEffect(() => {
+    if (stage !== "speaking" || !videoRef.current) return;
+    setPlayBlocked(false);
+    void videoRef.current.play().catch(() => {
+      setPlayBlocked(true);
+      pushStatus("口型视频已生成；如果浏览器阻止自动播放，请手动点击播放。");
+    });
+  }, [stage, visualUrl]);
+
   function pushStatus(line: string) {
     setStatusLines((current) => [line, ...current].slice(0, 5));
+  }
+
+  async function waitForPreparedVideos(assetId: number) {
+    const deadline = Date.now() + 120_000;
+    let current = await pollFaceVideos(assetId);
+    setAsset(current);
+    while (current.status === "video_pending" && Date.now() < deadline) {
+      pushStatus("等待 Ready 和 Listening 视频生成完成。");
+      await new Promise((resolve) => window.setTimeout(resolve, 3000));
+      current = await pollFaceVideos(assetId);
+      setAsset(current);
+    }
+    if (current.status !== "video_ready") {
+      throw new Error(current.error_message || "Ready/Listening 视频生成超时。");
+    }
+    return current;
   }
 
   async function prepareAsset(event: FormEvent<HTMLFormElement>) {
@@ -822,32 +866,26 @@ function FaceWorkspace() {
     setAssistantText("");
     try {
       setStage("preparing_voice");
-      pushStatus("Uploading face assets.");
+      pushStatus("正在上传面试官材料。");
       const uploaded = await createFaceAsset(imageFile, audioFile);
       setAsset(uploaded);
-      pushStatus("Registering cloned voice from reference audio.");
+      pushStatus("正在用参考音频登记复刻声音。");
       const voiceReady = await cloneFaceVoice(uploaded.id);
       setAsset(voiceReady);
       setStage("generating_videos");
-      pushStatus("Submitting optional OmniHuman video jobs.");
-      let videoReady = voiceReady;
-      try {
-        videoReady = await generateFaceVideos(uploaded.id);
-        setAsset(videoReady);
-        pushStatus("Video jobs submitted. Speech remains the realtime path.");
-      } catch (videoError) {
-        const message =
-          videoError instanceof Error ? videoError.message : "Video generation is not configured.";
-        setAsset((current) => (current ? { ...current, error_message: message } : current));
-        pushStatus(`Video setup skipped: ${message}`);
-      }
+      pushStatus("正在提交 OmniHuman Ready 和 Listening 视频任务。");
+      const videoPending = await generateFaceVideos(uploaded.id);
+      setAsset(videoPending);
+      pushStatus("正在等待 Ready 和 Listening 视频生成完成。");
+      const videoReady = await waitForPreparedVideos(uploaded.id);
+      pushStatus("Ready 和 Listening 视频已生成。");
       const createdSession = await createFaceSession(videoReady.id);
       setSession(createdSession);
       setStage("ready");
-      pushStatus("Realtime speech session is ready.");
+      pushStatus("实时语音会话已准备好。");
     } catch (prepareError) {
       setStage("error");
-      setError(prepareError instanceof Error ? prepareError.message : "Could not prepare face interview.");
+      setError(prepareError instanceof Error ? prepareError.message : "无法准备数字人面试。");
     } finally {
       setWorking(false);
     }
@@ -864,17 +902,17 @@ function FaceWorkspace() {
     socket.onmessage = (message) => handleServerEvent(JSON.parse(message.data) as FaceServerEvent);
     socket.onerror = () => {
       setStage("error");
-      setError("Realtime speech connection failed.");
+      setError("实时语音连接失败。");
     };
     socket.onclose = () => {
-      if (stage !== "error") pushStatus("Realtime connection closed.");
+      if (stage !== "error") pushStatus("实时连接已关闭。");
     };
     return socket;
   }
 
   function handleServerEvent(event: FaceServerEvent) {
     if (event.event === "session_started") {
-      pushStatus("Provider session started.");
+      pushStatus("服务会话已启动。");
       return;
     }
     if (event.event === "asr_partial" || event.event === "asr_final") {
@@ -883,7 +921,11 @@ function FaceWorkspace() {
     }
     if (event.event === "assistant_text") {
       setAssistantText(event.text);
-      setStage("speaking");
+      return;
+    }
+    if (event.event === "speaking_video_pending") {
+      setStage("generating_speaking");
+      pushStatus("正在生成带口型的回复视频，暂时不能继续说话。");
       return;
     }
     if (event.event === "assistant_audio") {
@@ -895,6 +937,7 @@ function FaceWorkspace() {
       setAsset((current) =>
         current ? { ...current, latest_speaking_video_url: event.video_url } : current,
       );
+      setStage("speaking");
       return;
     }
     if (event.event === "tts_ended" || event.event === "session_finished") {
@@ -910,11 +953,11 @@ function FaceWorkspace() {
   function playAssistantAudio(base64: string, mime: string) {
     const audio = new Audio(`data:${mime};base64,${base64}`);
     audio.onended = () => setStage("ready");
-    void audio.play().catch(() => pushStatus("Assistant audio is ready but browser autoplay blocked it."));
+    void audio.play().catch(() => pushStatus("面试官音频已就绪，但浏览器阻止了自动播放。"));
   }
 
   async function startListening() {
-    if (!session || working || stage === "listening") return;
+    if (!session || working || stage !== "ready") return;
     setError("");
     try {
       const socket = ensureSocket();
@@ -928,13 +971,13 @@ function FaceWorkspace() {
       };
       recorder.start(500);
       setStage("listening");
-      pushStatus("Listening. Release stop when your answer is complete.");
+      pushStatus("正在听你回答。说完后点击停止。");
     } catch (listenError) {
       setStage("error");
       setError(
         listenError instanceof Error
           ? listenError.message
-          : "Microphone access failed. Browser HTTPS rules may block HTTP demos.",
+          : "无法访问麦克风。浏览器的 HTTPS 规则可能会限制 HTTP 演示。",
       );
     }
   }
@@ -946,27 +989,26 @@ function FaceWorkspace() {
     streamRef.current = null;
     socketRef.current?.send(JSON.stringify({ event: "end_asr" }));
     setStage("ready");
-    pushStatus("Answer audio sent.");
+    pushStatus("回答音频已发送。");
   }
 
   return (
     <div className="page-view">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Experimental</p>
-          <h1>Face-to-Face Interview</h1>
+          <p className="eyebrow">实验功能</p>
+          <h1>数字人面试</h1>
           <p className="muted">
-            Push-to-talk realtime speech with optional OmniHuman video enhancement. Text Interview
-            remains the stable MVP path.
+            按住说话进行实时语音问答，可选接入 OmniHuman 视频增强。稳定主流程仍是模拟面试。
           </p>
         </div>
       </header>
       <section className="face-grid">
         <form className="panel face-setup" onSubmit={prepareAsset}>
-          <h2>Setup</h2>
+          <h2>准备材料</h2>
           <label className="file-drop">
             <ImagePlus size={22} />
-            <span>{imageFile ? imageFile.name : "Interviewer image"}</span>
+            <span>{imageFile ? imageFile.name : "面试官图片"}</span>
             <input
               accept="image/png,image/jpeg,image/webp"
               type="file"
@@ -975,7 +1017,7 @@ function FaceWorkspace() {
           </label>
           <label className="file-drop">
             <FileAudio size={22} />
-            <span>{audioFile ? audioFile.name : "Reference audio"}</span>
+            <span>{audioFile ? audioFile.name : "参考音频"}</span>
             <input
               accept="audio/mpeg,audio/wav,audio/mp4,audio/ogg,audio/aac"
               type="file"
@@ -984,7 +1026,7 @@ function FaceWorkspace() {
           </label>
           <button className="primary-button" disabled={!canPrepare} type="submit">
             {working ? <Loader2 className="spin" size={17} /> : <Sparkles size={17} />}
-            Prepare interviewer
+            生成面试官
           </button>
           {error ? <p className="form-error">{error}</p> : null}
         </form>
@@ -992,8 +1034,16 @@ function FaceWorkspace() {
         <section className="panel face-stage-panel">
           <div className={`face-visual face-${stage}`}>
             {visualUrl ? (
-              visualUrl.endsWith(".mp4") || visualUrl.includes(".mp4?") ? (
-                <video autoPlay loop muted playsInline src={visualUrl} />
+              visualIsVideo ? (
+                <video
+                  autoPlay
+                  loop={stage !== "speaking"}
+                  muted={stage !== "speaking"}
+                  onEnded={() => setStage("ready")}
+                  playsInline
+                  ref={videoRef}
+                  src={visualUrl}
+                />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img alt="Digital interviewer" src={visualUrl} />
@@ -1004,31 +1054,44 @@ function FaceWorkspace() {
           </div>
           <div className="face-controls">
             <StatusPill stage={stage} />
+            {playBlocked && stage === "speaking" ? (
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setPlayBlocked(false);
+                  void videoRef.current?.play();
+                }}
+                type="button"
+              >
+                <PlayCircle size={17} />
+                播放视频
+              </button>
+            ) : null}
             {stage === "listening" ? (
               <button className="danger-button" onClick={stopListening} type="button">
                 <Square size={17} />
-                Stop
+                停止
               </button>
             ) : (
               <button
                 className="primary-button"
-                disabled={!session || working}
+                disabled={!session || working || stage !== "ready"}
                 onClick={startListening}
                 type="button"
               >
                 <Mic size={17} />
-                Push to talk
+                开始说话
               </button>
             )}
           </div>
           <div className="face-transcript-grid">
             <div>
-              <h3>Candidate</h3>
-              <p>{transcript || "Microphone transcript will appear here."}</p>
+              <h3>候选人</h3>
+              <p>{transcript || "麦克风识别文本会显示在这里。"}</p>
             </div>
             <div>
-              <h3>Interviewer</h3>
-              <p>{assistantText || "Realtime response text will appear here."}</p>
+              <h3>面试官</h3>
+              <p>{assistantText || "面试官的实时回复会显示在这里。"}</p>
             </div>
           </div>
         </section>
@@ -1039,16 +1102,16 @@ function FaceWorkspace() {
           ))}
         </section>
         <section className="panel face-provider-panel">
-          <h2>Provider state</h2>
+          <h2>服务状态</h2>
           <dl className="status-table">
-            <dt>Asset</dt>
-            <dd>{asset ? `#${asset.id} ${asset.status}` : "Not prepared"}</dd>
-            <dt>Voice</dt>
-            <dd>{asset?.speaker_id ? "Cloned voice registered" : "Waiting"}</dd>
-            <dt>Video</dt>
-            <dd>{asset?.error_message || asset?.provider_status || "Optional"}</dd>
-            <dt>Session</dt>
-            <dd>{session ? `#${session.id} ${session.status}` : "Not started"}</dd>
+            <dt>材料</dt>
+            <dd>{asset ? `#${asset.id} ${asset.status}` : "未生成"}</dd>
+            <dt>声音</dt>
+            <dd>{asset?.speaker_id ? "声音复刻已登记" : "等待中"}</dd>
+            <dt>视频</dt>
+            <dd>{asset?.error_message || asset?.provider_status || "可选"}</dd>
+            <dt>会话</dt>
+            <dd>{session ? `#${session.id} ${session.status}` : "未开始"}</dd>
           </dl>
         </section>
       </section>
@@ -1058,11 +1121,29 @@ function FaceWorkspace() {
 
 function StatusPill({ stage }: { stage: FaceStage }) {
   const icon =
-    stage === "listening" ? <Mic size={16} /> : stage === "speaking" ? <Volume2 size={16} /> : stage === "error" ? <CircleAlert size={16} /> : <PlayCircle size={16} />;
+    stage === "listening" ? (
+      <Mic size={16} />
+    ) : stage === "speaking" || stage === "generating_speaking" ? (
+      <Volume2 size={16} />
+    ) : stage === "error" ? (
+      <CircleAlert size={16} />
+    ) : (
+      <PlayCircle size={16} />
+    );
+  const labels: Record<FaceStage, string> = {
+    setup: "待准备",
+    preparing_voice: "生成声音中",
+    generating_videos: "生成视频中",
+    generating_speaking: "生成回复视频中",
+    ready: "已就绪",
+    listening: "聆听中",
+    speaking: "回答中",
+    error: "出错",
+  };
   return (
     <span className={`status-pill face-status-${stage}`}>
       {icon}
-      {stage.replace("_", " ")}
+      {labels[stage]}
     </span>
   );
 }

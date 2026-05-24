@@ -31,6 +31,7 @@ from app.services.interviews import (
 
 router = APIRouter(tags=["interviews"])
 CurrentUser = Annotated[User, Depends(current_user)]
+MAX_INTERVIEW_TURNS = 5
 
 
 def _profile_from_request(request: InterviewCreate) -> dict[str, str]:
@@ -116,6 +117,33 @@ def _summary(interview: InterviewSession) -> InterviewSummary:
         updated_at=interview.updated_at,
         finished_at=interview.finished_at,
     )
+
+
+def _answered_turn_payloads(interview: InterviewSession) -> list[dict[str, Any]]:
+    return [
+        {
+            "question": turn.question,
+            "answer": turn.answer,
+            "feedback": _loads_object(turn.feedback_json),
+        }
+        for turn in interview.turns
+        if turn.answer is not None
+    ]
+
+
+def _finish_interview(
+    interview: InterviewSession,
+    *,
+    profile: dict[str, Any],
+    attachments: list[Attachment],
+    now: datetime,
+) -> None:
+    answered_turns = _answered_turn_payloads(interview)
+    result = generate_final_report(profile=profile, turns=answered_turns, attachments=attachments)
+    interview.status = "finished"
+    interview.final_report_json = json.dumps(result["report"], ensure_ascii=False)
+    interview.updated_at = now
+    interview.finished_at = now
 
 
 def _load_interview(interview_id: int, db: DbSession, user: User) -> InterviewSession:
@@ -218,15 +246,7 @@ def submit_answer(
 
     profile = _loads_object(interview.profile_json) or {}
     attachments = _interview_attachments(interview)
-    previous_turns = [
-        {
-            "question": turn.question,
-            "answer": turn.answer,
-            "feedback": _loads_object(turn.feedback_json),
-        }
-        for turn in interview.turns
-        if turn.answer is not None
-    ]
+    previous_turns = _answered_turn_payloads(interview)
     result = evaluate_answer_and_follow_up(
         profile=profile,
         question=active_turn.question,
@@ -239,16 +259,21 @@ def submit_answer(
     active_turn.feedback_json = json.dumps(result["feedback"], ensure_ascii=False)
     active_turn.model_used = result.get("model_used")
     active_turn.answered_at = now
-    db.add(
-        InterviewTurn(
-            interview_id=interview.id,
-            turn_index=len(interview.turns) + 1,
-            question=result["follow_up_question"],
-            model_used=result.get("model_used"),
-            created_at=now,
+
+    answered_count = len(previous_turns) + 1
+    if answered_count >= MAX_INTERVIEW_TURNS:
+        _finish_interview(interview, profile=profile, attachments=attachments, now=now)
+    else:
+        db.add(
+            InterviewTurn(
+                interview_id=interview.id,
+                turn_index=len(interview.turns) + 1,
+                question=result["follow_up_question"],
+                model_used=result.get("model_used"),
+                created_at=now,
+            )
         )
-    )
-    interview.updated_at = now
+        interview.updated_at = now
     db.commit()
     return _detail(_load_interview(interview.id, db, user))
 
@@ -261,20 +286,7 @@ def finish_interview(interview_id: int, db: DbSession, user: CurrentUser) -> Int
 
     profile = _loads_object(interview.profile_json) or {}
     attachments = _interview_attachments(interview)
-    answered_turns = [
-        {
-            "question": turn.question,
-            "answer": turn.answer,
-            "feedback": _loads_object(turn.feedback_json),
-        }
-        for turn in interview.turns
-        if turn.answer is not None
-    ]
-    result = generate_final_report(profile=profile, turns=answered_turns, attachments=attachments)
     now = datetime.now(UTC)
-    interview.status = "finished"
-    interview.final_report_json = json.dumps(result["report"], ensure_ascii=False)
-    interview.updated_at = now
-    interview.finished_at = now
+    _finish_interview(interview, profile=profile, attachments=attachments, now=now)
     db.commit()
     return _detail(_load_interview(interview.id, db, user))

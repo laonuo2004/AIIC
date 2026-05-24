@@ -228,9 +228,10 @@ Current P0.5 completion snapshot:
 
 Current face-to-face experiment snapshot:
 
-- Backend face APIs are implemented for authenticated asset upload, public provider-readable media tokens, voice clone preparation, optional OmniHuman video job submission, session creation, and a browser-to-backend realtime WebSocket contract.
-- Frontend Face-to-Face page now supports interviewer image/reference audio setup, voice/video preparation states, push-to-talk microphone streaming, provider status display, transcript/assistant text panes, cloned response audio playback, and ready/listening/speaking/error visual states.
-- Volcengine realtime video is not represented as true streaming video. The implemented realtime path is speech/audio; OmniHuman remains async best-effort visual enhancement.
+- Backend face APIs are implemented for authenticated asset upload, public provider-readable media tokens, voice clone preparation, OmniHuman Ready/Listening job submission and polling, session creation, and a browser-to-backend realtime WebSocket contract. Ready/Listening generation is submitted sequentially so the free-trial OmniHuman concurrency limit of 1 is not exhausted by one preparation flow.
+- Speaking replies use the realtime speech audio as the driver for a per-turn OmniHuman speaking video. The backend waits for the generated video, sends `speaking_video_ready` on success, and falls back to `assistant_audio` with a visible error on provider failure or timeout.
+- Frontend Face-to-Face page now supports interviewer image/reference audio setup, voice/video preparation states, push-to-talk microphone streaming, provider status display, transcript/assistant text panes, Ready/Listening looped video states, generated Speaking video playback, and honest audio fallback.
+- Volcengine realtime video is not represented as true streaming video. The implemented video path is asynchronous generation followed by synchronized playback.
 - Provider credentials remain backend-only `.env` values. Normal users do not configure raw model IDs or API keys.
 - Public HTTP microphone access may be browser-limited outside localhost; HTTPS or controlled browser permissions may be needed for a full public smoke session.
 
@@ -239,7 +240,7 @@ Current face-to-face experiment snapshot:
 - Full production Volcengine end-to-end real-time speech binary bridge.
 - Fully verified voice cloning from uploaded interviewer reference audio against a real provider account.
 - Fully verified OmniHuman 1.5 fast-mode video generation from interviewer image.
-- Seamless switching among provider-generated ready, listening, and speaking video states.
+- Public smoke verification of provider-generated ready, listening, and speaking video states.
 - Real-time voice interview validated on the public deployment.
 - Video interview.
 - Full long-term memory system.

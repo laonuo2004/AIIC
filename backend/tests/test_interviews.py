@@ -213,6 +213,69 @@ def test_submit_answer_returns_feedback_and_follow_up(client, monkeypatch):
     assert body["current_question"] == "Which metric best captured hallucination reduction?"
 
 
+def test_submit_fifth_answer_auto_finishes_interview(client, monkeypatch):
+    _register_and_login(client)
+    report_inputs = {}
+
+    monkeypatch.setattr(
+        "app.api.interviews.generate_first_question",
+        lambda profile, attachments: {
+            "question": "你的个人贡献是什么？",
+            "model_used": "openrouter/qwen/qwen3.6-plus",
+            "raw_text": None,
+        },
+    )
+
+    def fake_feedback(*, profile, question, answer, previous_turns, attachments):
+        next_index = len(previous_turns) + 2
+        return {
+            "feedback": {
+                "strengths": ["回答了问题"],
+                "weaknesses": ["证据还不够"],
+                "score": 6,
+                "advice": "下次用一个指标说明结果。",
+            },
+            "follow_up_question": f"第 {next_index} 个追问？",
+            "model_used": "openrouter/qwen/qwen3.6-flash",
+            "raw_text": None,
+        }
+
+    def fake_report(*, profile, turns, attachments):
+        report_inputs["turn_count"] = len(turns)
+        return {
+            "report": {
+                "overall_score": 6,
+                "summary": "已完成五轮模拟面试。",
+                "weaknesses": ["证据链仍需补强"],
+                "next_steps": ["复盘五个回答并重写项目贡献"],
+            },
+            "model_used": "openrouter/qwen/qwen3.6-plus",
+            "raw_text": None,
+        }
+
+    monkeypatch.setattr("app.api.interviews.evaluate_answer_and_follow_up", fake_feedback)
+    monkeypatch.setattr("app.api.interviews.generate_final_report", fake_report)
+    interview_id = client.post("/api/interviews", json=_profile_payload()).json()["id"]
+
+    body = None
+    for index in range(5):
+        response = client.post(
+            f"/api/interviews/{interview_id}/answers",
+            json={"answer": f"这是第 {index + 1} 个回答。"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+
+    assert body is not None
+    assert body["status"] == "finished"
+    assert body["current_question"] is None
+    assert body["final_report"]["summary"] == "已完成五轮模拟面试。"
+    assert body["finished_at"] is not None
+    assert len(body["turns"]) == 5
+    assert body["turns"][-1]["answer"] == "这是第 5 个回答。"
+    assert report_inputs["turn_count"] == 5
+
+
 def test_finish_interview_generates_report_and_marks_finished(client, monkeypatch):
     _register_and_login(client)
     monkeypatch.setattr(

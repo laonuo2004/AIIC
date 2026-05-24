@@ -464,12 +464,12 @@ textarea {
   display: grid;
   gap: 14px;
   grid-template-columns: 48px minmax(0, 1fr);
-  padding: 22px;
+  padding: 18px 20px;
 }
 
 .question-panel h2 {
-  font-size: clamp(21px, 2.6vw, 32px);
-  line-height: 1.18;
+  font-size: clamp(18px, 1.8vw, 24px);
+  line-height: 1.28;
   margin-bottom: 0;
   overflow-wrap: anywhere;
 }
@@ -824,6 +824,10 @@ textarea {
   border-color: color-mix(in srgb, var(--gold) 75%, var(--line));
 }
 
+.face-generating_speaking {
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
+}
+
 .face-error {
   border-color: color-mix(in srgb, var(--danger) 75%, var(--line));
 }
@@ -854,6 +858,10 @@ textarea {
 
 .face-status-speaking {
   border-color: color-mix(in srgb, var(--gold) 75%, var(--line));
+}
+
+.face-status-generating_speaking {
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
 }
 
 .face-status-error {

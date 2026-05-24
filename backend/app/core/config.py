@@ -27,10 +27,17 @@ class Settings(BaseSettings):
     public_base_url: str | None = "http://115.190.120.206"
 
     volcengine_speech_api_key: str | None = Field(default=None, repr=False)
+    volcengine_speech_access_token: str | None = Field(default=None, repr=False)
+    volcengine_speech_app_id: str | None = None
     volcengine_realtime_resource_id: str = "volc.speech.dialog"
     volcengine_voice_clone_resource_id: str = "seed-icl-2.0"
+    volcengine_voice_clone_speaker_id: str | None = None
     volcengine_omnihuman_access_key_id: str | None = Field(default=None, repr=False)
     volcengine_omnihuman_secret_access_key: str | None = Field(default=None, repr=False)
+    volcengine_omnihuman_max_wait_seconds: int = 120
+    volcengine_omnihuman_poll_interval_seconds: float = 3
+    volcengine_omnihuman_output_resolution: int = 720
+    volcengine_omnihuman_fast_mode: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

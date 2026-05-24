@@ -812,3 +812,7 @@ tested core behavior,
 deployed it publicly,
 and explained product tradeoffs clearly.
 ```
+
+## 26. Other
+
+Open web interface on port 9999 for superpowers' visual debugging.
