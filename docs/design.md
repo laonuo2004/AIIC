@@ -116,6 +116,9 @@ Core backend responsibilities:
 
 - Authentication and sessions.
 - Candidate profile and interview session APIs.
+- Protected attachment upload and download.
+- Attachment-to-interview binding.
+- Text/PDF context extraction and multimodal image payload construction.
 - SQLite persistence.
 - Prompt loading.
 - LiteLLM model calls through OpenRouter.
@@ -142,6 +145,7 @@ Reuse the existing user/session foundation.
 Interview data should capture:
 
 - Project card and candidate profile.
+- Bound supporting attachments.
 - Interview type or target direction.
 - Known weaknesses and target scenario.
 - Interview status.
@@ -153,6 +157,24 @@ Interview data should capture:
 - Timestamps and ownership.
 
 SQLite is sufficient for this challenge-scale deployment and keeps operations simple.
+
+## Attachment Context Design
+
+Supporting files are part of the interview setup, not a separate document-management product.
+
+Implemented behavior:
+
+- Text attachments are wrapped as XML/CDATA-like candidate context before being added to the prompt.
+- Image attachments are sent as OpenRouter-compatible multimodal `image_url` content.
+- PDF attachments are accepted as protected uploads, text is extracted from pages when available, and pages are rendered as image inputs.
+- PDF context is limited by `MAX_PDF_PAGES_PER_ATTACHMENT`, default `12`, to keep demo requests bounded.
+- Interview detail responses include bound attachment metadata so the UI can show what evidence the session used.
+
+Design intent:
+
+- Let candidates provide project reports, paper drafts, README notes, screenshots, or result figures without requiring a polished resume parser.
+- Keep the product centered on interview pressure and feedback rather than file management.
+- Treat full semantic resume/PDF parsing as future work.
 
 ## LLM Routing
 
@@ -276,4 +298,5 @@ Keep deployment simple and stable.
 - Face-to-face mode is a strong demo differentiator, but it is provider-heavy and should not block the core loop.
 - SQLite is chosen for challenge reliability, not high-concurrency production use.
 - Project-level provider configuration improves user experience by avoiding API-key setup screens.
-- Broad interview categories, OAuth, PDF parsing, and complex dashboards are intentionally postponed.
+- Broad interview categories, OAuth, full semantic resume/PDF parsing, and complex dashboards are intentionally postponed.
+- Bounded PDF context extraction is implemented for the demo flow.

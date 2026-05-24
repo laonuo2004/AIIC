@@ -65,7 +65,10 @@ Already available:
 - SQLite persistence.
 - HttpOnly cookie auth.
 - Streaming chat through LiteLLM/OpenRouter.
-- Text/image attachment support.
+- Text, image, and PDF attachment support.
+- Interview creation can bind uploaded attachments.
+- Text attachments are injected into prompts; image attachments and rendered PDF pages are sent as multimodal image inputs.
+- JSON repair and user-friendly fallback handling for LLM output.
 - Theme support and settings page.
 - Docker Compose and Nginx deployment.
 - Backend pytest coverage and frontend checks.
@@ -115,11 +118,20 @@ Acceptance criteria:
 
 - A reviewer can open the public URL and start a project-deep-dive mock interview.
 - The first AI question references the submitted project card rather than asking a generic interview question.
+- The user can upload supporting project material, including text, image, or PDF files, and bind it to an interview.
 - After one answer, the UI shows structured feedback and an adaptive follow-up.
 - The user can finish the interview and see a final review report.
 - The final report includes an objective pass-risk judgment: likely pass, borderline, or high risk.
 - Provider keys are not requested from the normal user and are not exposed to frontend JavaScript.
 - `/health` works publicly after deployment.
+
+Current completion snapshot:
+
+- Text interview MVP, interview persistence, attachment binding, structured feedback, adaptive follow-up, and final report flow are implemented.
+- Frontend validation accepts short manual profile text when uploaded files provide the main project context.
+- Backend schema validation is aligned with that behavior to avoid false `422` errors.
+- QA feedback layout has been manually checked by the developer after UI fixes.
+- Docker build mirrors and server disk capacity have been adjusted for reliable rebuilds.
 
 ## P0.5: High-Value And Low-Cost
 
@@ -167,6 +179,13 @@ Acceptance criteria:
 - Add or update pytest coverage for interview API behavior with mocked LLM calls.
 - Update README, Product Memo notes, iteration log, and demo script.
 
+Current P0.5 completion snapshot:
+
+- Reviewer-style short-question prompt constraints are documented and tested.
+- LLM JSON repair/fallback behavior is implemented for interview outputs.
+- PDF page-limit fallback returns a clear product error.
+- Preset/manual demo flow now supports "see uploaded files + short profile" as a valid input path.
+
 ## P1: If Time Allows
 
 - Simple login/test account flow.
@@ -196,7 +215,8 @@ Acceptance criteria:
   - method-comparison weakness if applicable
   - weakest answers
   - next 24-hour training plan
-- Reuse attachments for optional project notes, screenshots, or short video/image context.
+- Add browser-level screenshot regression for interview feedback layout.
+- Add an exportable final report.
 - Keep a reserved Face-to-Face Interview page between Text Interview and Settings.
 - On the face-to-face page, provide the product shell for:
   - interviewer image upload
@@ -216,7 +236,7 @@ Acceptance criteria:
 - Video interview.
 - Full long-term memory system.
 - Semantic resume/project parsing.
-- Complex resume PDF parsing.
+- Semantic resume/project parsing.
 - Big-tech coding judge.
 - Large manually curated question bank.
 - Multi-user admin system.
@@ -231,7 +251,7 @@ Acceptance criteria:
 - Voice/video as the only working product path.
 - Broad big-tech algorithm interview platform.
 - Large question bank.
-- PDF parsing as a required feature.
+- Full resume/PDF semantic parsing as a required feature.
 - OAuth or email verification.
 - Multi-provider settings page for normal users.
 - User-entered provider API keys.
@@ -281,6 +301,7 @@ Acceptance criteria:
 - Verify public URL and `/health`.
 - Do one real OpenRouter smoke test.
 - Verify the first question, feedback, follow-up, and final report are product-specific.
+- Verify upload PDF/image -> start interview -> answer -> feedback -> finish report on the public URL before recording.
 
 ### Hours 15-16
 
@@ -310,7 +331,7 @@ Acceptance criteria:
 - Core pain point: project claims fail under continuous teacher follow-up.
 - Response #4 insight: some users specifically want reviewer/rebuttal-style pressure and long-term personalization.
 - Product design: project card, one-question interview flow, structured feedback, final report.
-- Omitted features: voice/video as required path, PDF parsing, coding judge, large question bank, complex dashboard.
+- Omitted features: voice/video as required path, semantic resume/PDF parsing, coding judge, large question bank, complex dashboard.
 - Iteration record: generic chat baseline -> ResearchMocker -> project-deep-dive pressure test.
 - Next week plan: face-to-face mode, richer rubrics, exportable reports, interview templates, stronger user memory.
 - AI tool usage: Codex, ChatGPT/web AI tools, OpenRouter runtime models.
@@ -390,6 +411,8 @@ Fallback:
 
 - **LLM latency or provider failure**: keep an existing persisted demo session and use mocked tests for reliability.
 - **Model output not valid JSON**: add repair/parsing fallback or store raw text with a user-friendly error.
+- **Large PDF context**: keep the 12-page default limit and prefer concise demo materials.
+- **Frontend layout regressions**: manually test the feedback cards after CSS changes; add screenshots if time allows.
 - **Scope creep from face-to-face mode**: do not start full Volcengine integration before text MVP works.
 - **Deployment failure**: preserve current Docker/Nginx baseline and rollback to last working image/build.
 - **Time pressure**: ship text interview + final report first; reserve face-to-face as design/experimental page.
@@ -414,12 +437,32 @@ For implementation changes:
 - `curl -f http://127.0.0.1/health`
 - `curl -f http://115.190.120.206/health`
 
+Latest known verification:
+
+- `cd backend && uv run pytest`: 28 passed
+- `cd backend && uv run ruff check .`: passed
+- `cd frontend && pnpm lint`: passed
+- `cd frontend && pnpm build`: passed
+- `docker compose config --quiet --no-env-resolution`: passed
+- `docker compose up -d --build`: succeeded
+- `curl -f http://127.0.0.1:8000/health`: passed
+- `curl -f http://127.0.0.1:3000`: passed
+- `curl -f http://115.190.120.206/health`: passed
+- Local API smoke with short profile plus attachments creating an interview: `200 OK`
+- Human public demo check: developer reported no blocking issue after manual testing
+
+Remaining verification gap:
+
+- No automated real-browser screenshot regression for the QA feedback layout.
+- No separately recorded full public run log for upload PDF/image -> multi-turn interview -> final report.
+
 ## Demo Checklist
 
 - Open public URL.
 - Log in with a test account or register quickly.
 - Show the first screen as ResearchMocker, not a generic chat app.
 - Load or enter a concrete project card.
+- Upload supporting project material, preferably one PDF and one image.
 - Start text interview.
 - Show the AI asking a targeted project-deep-dive question.
 - Answer vaguely once so the product can expose missing evidence or unclear ownership.

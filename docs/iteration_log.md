@@ -141,7 +141,7 @@ Not adopted directly:
 - Vite frontend stack.
 - Direct OpenAI SDK calls scattered in the app.
 - Webcam/technical interview features that are not core to ResearchMocker.
-- Resume PDF parsing as a required MVP path.
+- Full semantic resume/PDF parsing as a required MVP path.
 
 ## Scope Cuts
 
@@ -153,7 +153,7 @@ Cut from MVP:
 - Large question bank.
 - User-configured API keys.
 - OAuth/email verification.
-- Mandatory PDF parsing.
+- Mandatory semantic resume/PDF parsing.
 - Advanced analytics dashboard.
 - Multi-user admin system.
 - Complicated multi-agent architecture.
@@ -188,6 +188,47 @@ Verification:
 Known risk:
 
 - Public deployment still needs a real OpenRouter smoke test with server-side credentials.
+
+### 2026-05-24: Attachments And Demo Reliability Pass
+
+Change:
+
+- Added interview attachment binding for uploaded project materials.
+- Injected text attachments into interview prompts as XML/CDATA context.
+- Sent image attachments to OpenRouter-compatible multimodal model calls as `image_url` inputs.
+- Added PDF upload support for interview context: extract page text when available and render pages as image inputs, with a default 12-page limit.
+- Added JSON repair/fallback behavior for interview LLM outputs.
+- Switched feedback/follow-up generation to the fast interview model.
+- Improved profile validation so "short profile + uploaded files" is a valid demo path.
+- Improved frontend error display for FastAPI validation errors.
+- Refined QA feedback layout and history navigation.
+- Updated Docker build mirrors and removed the Python `pytesseract` dependency in favor of system `tesseract` CLI where OCR is needed.
+- Expanded server disk capacity from about 20G to 40G.
+
+Reason:
+
+- Supporting files make the project-deep-dive workflow much more realistic: students can provide reports, notes, diagrams, and experiment figures without typing everything live.
+- The demo needs a fast and reliable path from profile/files to first question, feedback, follow-up, and final report.
+- Build and disk reliability matter because late deployment work is high risk.
+
+Verification:
+
+- `cd backend && uv run pytest`: 28 passed
+- `cd backend && uv run ruff check .`
+- `cd frontend && pnpm lint`
+- `cd frontend && pnpm build`
+- `docker compose config --quiet --no-env-resolution`
+- `docker compose up -d --build`
+- `curl -f http://127.0.0.1:8000/health`
+- `curl -f http://127.0.0.1:3000`
+- `curl -f http://115.190.120.206/health`
+- Local API smoke: short profile plus attachments created an interview with `200 OK`.
+- Human public demo check: developer reported no blocking issue after manual testing.
+
+Known risk:
+
+- No automated browser screenshot regression for the QA feedback layout yet.
+- No separately recorded full public run log for upload PDF/image -> multi-turn interview -> final report.
 
 ### Entry Template
 

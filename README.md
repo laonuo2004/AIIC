@@ -35,6 +35,10 @@ Implemented:
 - User registration/login with HttpOnly session cookies and hashed passwords.
 - SQLite persistence for users, sessions, interview sessions, interview turns, conversations, messages, provider records, model cache, and attachments.
 - LiteLLM/OpenRouter calls routed through the backend with project-level `.env` credentials.
+- Interview-context attachments:
+  - text files are injected into prompts as protected XML/CDATA context
+  - image files are sent to OpenRouter-compatible multimodal models as `image_url` inputs
+  - PDF files are accepted, text is extracted when available, and pages are rendered as image inputs with a page limit
 - Next.js + TypeScript frontend with a ResearchMocker text interview workflow, saved interview history, final report view, safe settings page, and experimental face-to-face placeholder.
 - Docker Compose backend/frontend services behind Nginx.
 - Backend pytest coverage and frontend lint/build checks.
@@ -42,7 +46,6 @@ Implemented:
 Still planned:
 
 - Real Volcengine face-to-face speech/video integration.
-- Richer attachments inside the interview prompt context.
 - Exportable final report.
 - Stronger long-term personalization across practice sessions.
 
@@ -51,7 +54,7 @@ Still planned:
 MVP:
 
 - Text-based mock interview for research/project deep dives.
-- Project card setup with self-introduction, project experience, target direction, personal contribution, key methods, experiments/results, failure cases, and weak points.
+- Project card setup with self-introduction, project experience, target direction, personal contribution, key methods, experiments/results, failure cases, weak points, and optional supporting files.
 - One-question-at-a-time interview flow.
 - Adaptive follow-up based on the candidate's previous answer.
 - Structured feedback with strengths, weaknesses, score, teacher/reviewer perspective, answer rhythm/length feedback, and actionable advice.
@@ -109,6 +112,10 @@ LITELLM_FALLBACK_MODEL=openrouter/qwen/qwen3.6-flash
 INTERVIEW_DEEP_MODEL=openrouter/qwen/qwen3.6-plus
 INTERVIEW_FAST_MODEL=openrouter/qwen/qwen3.6-flash
 OPENROUTER_API_KEY=your_openrouter_api_key_here
+UPLOAD_DIR=./data/uploads
+MAX_UPLOAD_BYTES=5242880
+MAX_ATTACHMENTS_PER_MESSAGE=4
+MAX_PDF_PAGES_PER_ATTACHMENT=12
 ```
 
 Production should use a server-side OpenRouter key. Do not expose provider keys in frontend code or commit them to Git.
@@ -181,10 +188,12 @@ The current backend supports protected attachment uploads. Attachments are not s
 - Storage directory: `UPLOAD_DIR`, default `./data/uploads`
 - Single-file limit: `MAX_UPLOAD_BYTES`, default `5242880` bytes, 5MB
 - Per-message limit: `MAX_ATTACHMENTS_PER_MESSAGE`, default `4`
+- PDF page limit for interview context: `MAX_PDF_PAGES_PER_ATTACHMENT`, default `12`
 - Text extensions: `.txt`, `.md`, `.json`, `.csv`, `.log`
 - Image MIME types: `image/png`, `image/jpeg`, `image/webp`, `image/gif`
+- PDF MIME type: `application/pdf`
 
-For the interview product, attachments can be reused for project notes, screenshots, or other supporting material if they help the interview flow.
+For the interview product, attachments are available when creating an interview. They are useful for project notes, papers, reports, screenshots, experiment tables, and other supporting material. Text/PDF content is added to the LLM context, while images and rendered PDF pages are passed as multimodal image inputs.
 
 ## Docker Compose
 
@@ -258,12 +267,13 @@ Target 3-minute demo:
 1. Open the public URL.
 2. Log in with a test account or register quickly.
 3. Enter a candidate profile and project summary.
-4. Start a mock interview.
-5. Show the AI asking a targeted project/research question.
-6. Give a vague answer so the product exposes missing evidence or unclear personal contribution.
-7. Show structured feedback, teacher-perspective explanation, rhythm feedback, and an adaptive follow-up question.
-8. Finish and show the final review report.
-9. Briefly show engineering stack and deployment.
+4. Upload supporting material such as a project PDF/report and an architecture or result image.
+5. Start a mock interview.
+6. Show the AI asking a targeted project/research question based on the profile and uploaded context.
+7. Give a vague answer so the product exposes missing evidence or unclear personal contribution.
+8. Show structured feedback, teacher-perspective explanation, rhythm feedback, and an adaptive follow-up question.
+9. Finish and show the final review report.
+10. Briefly show engineering stack and deployment.
 
 If the face-to-face page is ready, show it as the bridge from text practice to realistic interview simulation. If it is not ready, do not present it as implemented.
 
@@ -273,13 +283,14 @@ If the face-to-face page is ready, show it as the bridge from text practice to r
 - Auth is intentionally lightweight.
 - SQLite is chosen for demo reliability and simple deployment, not high-concurrency production traffic.
 - The existing codebase still contains generic chat/provider baseline pieces that are being adapted into an interview product.
+- PDF multimodal context increases request size, so PDF pages are limited for demo reliability.
 - The face-to-face interview mode depends on external Volcengine APIs and may remain an experimental extension if time is tight.
 - Automated tests must mock external providers; real provider smoke tests should be manual and controlled.
 
 ## Future Work
 
-- Complete the text mock interview MVP.
-- Add robust final report generation and saved interview history.
+- Add browser-level regression screenshots for the core interview layout.
+- Run and document a full public demo regression: upload PDF/image, complete multi-turn interview, and finish the report.
 - Add a polished test account/demo dataset.
 - Integrate Volcengine real-time speech and OmniHuman 1.5 for face-to-face interview mode.
 - Add HTTPS/domain deployment if time allows.

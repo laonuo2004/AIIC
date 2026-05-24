@@ -96,6 +96,7 @@ project card -> project deep-dive -> reviewer-style follow-up -> structured feed
 Deliberately included:
 
 - Project card/candidate profile input.
+- Supporting project files, including text, images, and bounded PDF context.
 - One-question-at-a-time interview flow.
 - Adaptive follow-up questions.
 - Per-answer feedback.
@@ -112,7 +113,7 @@ Deliberately omitted or minimized:
 
 - Broad algorithm interview training.
 - Complex question bank.
-- PDF parsing as a required feature.
+- Full semantic resume/PDF parsing as a required feature.
 - OAuth and email verification.
 - Multi-provider API-key configuration for users.
 - Full voice/video interview as the required path.
@@ -165,6 +166,14 @@ Important decisions:
   - Flash for fast interview turns.
 - Treat face-to-face mode as an experiment unless P0 is stable.
 
+Latest implementation update:
+
+- The text interview flow now accepts supporting attachments during interview setup.
+- Text files are injected into the interview prompt, image files are passed as multimodal inputs, and PDFs are converted into bounded text/image context.
+- JSON repair/fallback logic improves resilience when model output is malformed.
+- UI validation and backend schema validation were aligned so uploaded files can carry the main project context.
+- The developer manually checked the public demo flow and reported no blocking issue.
+
 ## 4. Next-Step Design
 
 If given one more week:
@@ -175,6 +184,7 @@ If given one more week:
 - Add stronger user memory: target school/type, project summaries, known weaknesses, practice history, and previous feedback summaries.
 - Improve scoring rubric with more calibrated dimensions.
 - Add sample interview datasets and anonymized examples.
+- Add browser-level screenshot regression for feedback layout.
 - Add HTTPS/domain deployment.
 
 ## 5. AI Tool Usage

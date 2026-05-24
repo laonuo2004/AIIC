@@ -130,9 +130,10 @@ The repository already has a working full-stack baseline:
 
 ```text
 FastAPI backend
-SQLite users, sessions, conversations, messages, attachments, and provider records
+SQLite users, sessions, conversations, messages, attachments, interview records, and provider records
 HttpOnly cookie authentication
 LiteLLM streaming chat
+Text/image/PDF attachments for interview context
 Next.js + TypeScript frontend
 Docker Compose backend/frontend services
 Nginx public reverse proxy
@@ -333,6 +334,7 @@ The backend is responsible for:
 - Candidate profile and interview session APIs.
 - Conversation/interview persistence.
 - Attachment handling when useful.
+- Bounded PDF context extraction for project materials.
 - Prompt loading.
 - LiteLLM/OpenRouter calls.
 - Volcengine API calls only for the face-to-face experiment.

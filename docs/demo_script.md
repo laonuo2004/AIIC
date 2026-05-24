@@ -15,12 +15,13 @@ Show the strongest product moment immediately.
    - Personal contribution.
    - Experiment/result claim.
    - Weak point, such as "I struggle to explain my project contribution clearly."
-4. Start the mock interview.
-5. Show the interviewer asking a project-specific deep-dive or reviewer-style question, not a generic question.
-6. Give a deliberately vague answer, for example "we improved performance a lot by changing the model."
-7. Show structured feedback that points out missing evidence, unclear ownership, weak technical depth, and poor answer rhythm.
-8. Show the teacher-perspective explanation: why a real teacher would keep asking about this claim.
-9. Show the reviewer-style adaptive follow-up that presses method design, experiment proof, or personal contribution.
+4. Upload one supporting PDF/report and one image, such as an architecture diagram or experiment figure.
+5. Start the mock interview.
+6. Show the interviewer asking a project-specific deep-dive or reviewer-style question based on the profile and uploaded material, not a generic question.
+7. Give a deliberately vague answer, for example "we improved performance a lot by changing the model."
+8. Show structured feedback that points out missing evidence, unclear ownership, weak technical depth, and poor answer rhythm.
+9. Show the teacher-perspective explanation: why a real teacher would keep asking about this claim.
+10. Show the reviewer-style adaptive follow-up that presses method design, experiment proof, or personal contribution.
 
 Suggested narration:
 
@@ -39,10 +40,14 @@ ResearchMocker is an AI project-deep-dive and reviewer-style mock interviewer fo
    - experiment/result claim
    - failure case or limitation
    - weak points
-2. Start a text interview.
-3. Let the AI ask one targeted question.
-4. Answer with a short response.
-5. Show per-answer feedback:
+2. Show the upload area for supporting project files:
+   - project PDF/report
+   - notes or README text
+   - result chart or architecture image
+3. Start a text interview.
+4. Let the AI ask one targeted question.
+5. Answer with a short response.
+6. Show per-answer feedback:
    - strengths
    - weaknesses
    - teacher perspective
@@ -51,10 +56,10 @@ ResearchMocker is an AI project-deep-dive and reviewer-style mock interviewer fo
    - personal contribution clarity
    - score
    - actionable advice
-6. Show a rewrite suggestion or concrete evidence the answer should include.
-7. Show the follow-up question reacting to the previous answer.
-8. Finish the interview.
-9. Show the final report:
+7. Show a rewrite suggestion or concrete evidence the answer should include.
+8. Show the follow-up question reacting to the previous answer.
+9. Finish the interview.
+10. Show the final report:
    - overall assessment
    - pass-risk judgment: likely pass, borderline, or high risk
    - top 3 reasons for the judgment
@@ -103,6 +108,7 @@ If the live provider is slow:
 - Use a saved demo interview record.
 - Show the final report from an earlier run.
 - Use the preset project card so the product value is visible without typing live.
+- Keep uploaded materials small, preferably one short PDF and one image.
 - Explain that automated tests mock providers, while the public deployment can be smoke-tested manually.
 
 If face-to-face mode is incomplete:
