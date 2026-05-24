@@ -228,6 +228,7 @@ Interviewer prompt guidance:
 - Ask reviewer-style questions when the answer makes unproven claims.
 - Challenge vague statements like "our module improves performance", "we designed a better method", "we achieved good results", or "I was responsible for the model".
 - Ask why a module is necessary, what alternatives were considered, how experiments prove the claim, whether gains may come from confounders, what the candidate personally implemented, and whether the project story is convincing.
+- Keep questions short and realistic for live interviews: one sentence preferred, two sentences maximum, one issue per question.
 - Keep the tone strict but professional. The system may say an answer is high risk, but must not insult the user.
 
 ## Face-to-Face Interview Extension

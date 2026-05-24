@@ -132,6 +132,7 @@ Acceptance criteria:
   - compare with related or alternative methods
   - question whether experiments prove the claim
   - clarify the candidate's personal contribution
+  - keep each question realistic: one sentence preferred, at most two sentences, one thing at a time
 - Add teacher-perspective explanation in feedback:
   - why a real teacher would ask this
   - what the answer makes the teacher doubt

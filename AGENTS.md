@@ -317,6 +317,7 @@ Prompt guidance:
 - Ask reviewer-style questions when the answer makes unproven claims.
 - Challenge vague statements such as "our module improves performance", "we designed a better method", "we achieved good results", or "I was responsible for the model".
 - Ask why a module is necessary, what alternative methods were considered, how experiments prove the claim, whether improvements come from the proposed method or confounders, what the candidate personally implemented, and how to tell the project story convincingly.
+- Interview questions should be realistic and short: prefer one sentence, use at most two sentences, and ask only one thing at a time.
 - Provide objective feedback and do not over-comfort the user.
 - If the answer is weak, explicitly explain why it is risky in a real interview.
 
