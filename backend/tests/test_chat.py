@@ -7,6 +7,30 @@ def _register_and_login(client):
     assert response.status_code == 200
 
 
+def _configure_model(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.api.providers.fetch_openrouter_models",
+        lambda api_key: [
+            {
+                "id": "qwen/qwen3.6-flash",
+                "name": "Qwen 3.6 Flash",
+                "input_modalities": ["text"],
+                "output_modalities": ["text"],
+                "context_length": 128000,
+                "pricing": {"prompt": "0.0000001", "completion": "0.0000002"},
+            }
+        ],
+    )
+    client.put("/api/providers/openrouter/key", json={"api_key": "sk-or-v1-secret1234"})
+    client.patch(
+        "/api/providers/openrouter/models",
+        json={
+            "enabled_model_ids": ["qwen/qwen3.6-flash"],
+            "selected_model_id": "qwen/qwen3.6-flash",
+        },
+    )
+
+
 def _events(response):
     events = []
     for block in response.text.strip().split("\n\n"):
@@ -19,9 +43,12 @@ def _events(response):
 
 def test_stream_chat_persists_conversation_and_messages(client, monkeypatch):
     _register_and_login(client)
+    _configure_model(client, monkeypatch)
 
-    def fake_stream(messages):
+    def fake_stream(messages, *, model, api_key):
         assert messages[-1]["content"] == "Hello"
+        assert model == "openrouter/qwen/qwen3.6-flash"
+        assert api_key == "sk-or-v1-secret1234"
         yield "Hi"
         yield " there"
 
@@ -58,8 +85,9 @@ def test_stream_chat_requires_auth(client):
 
 def test_stream_chat_returns_sse_error_when_llm_fails(client, monkeypatch):
     _register_and_login(client)
+    _configure_model(client, monkeypatch)
 
-    def fake_stream(messages):
+    def fake_stream(messages, *, model, api_key):
         raise RuntimeError("provider unavailable")
         yield ""
 

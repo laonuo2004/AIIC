@@ -12,6 +12,8 @@ dependencies = [
     "bcrypt>=5.0.0",
     "python-multipart>=0.0.9",
     "litellm>=1.50.0",
+    "cryptography>=48.0.0",
+    "httpx[socks]>=0.27.0",
 ]
 
 [dependency-groups]

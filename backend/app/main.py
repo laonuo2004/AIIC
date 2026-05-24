@@ -1,11 +1,12 @@
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, chat
-from app.core.config import get_settings
+from app.api import attachments, auth, chat, providers
+from app.core.config import Settings, get_settings
 from app.core.database import init_db
 
 settings = get_settings()
@@ -33,5 +34,25 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/api/status")
+def runtime_status() -> dict[str, object]:
+    current: Settings = get_settings()
+    return {
+        "app_env": current.app_env,
+        "database": "sqlite" if current.database_url.startswith("sqlite") else "external",
+        "upload_limit_bytes": current.max_upload_bytes,
+        "max_attachments_per_message": current.max_attachments_per_message,
+        "proxy_enabled": bool(
+            current.openrouter_http_proxy
+            or os.environ.get("HTTP_PROXY")
+            or os.environ.get("HTTPS_PROXY")
+            or os.environ.get("NO_PROXY")
+        ),
+        "default_model": current.litellm_model,
+    }
+
+
 app.include_router(auth.router)
 app.include_router(chat.router)
+app.include_router(providers.router)
+app.include_router(attachments.router)

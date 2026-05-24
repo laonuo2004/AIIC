@@ -1,9 +1,11 @@
+import base64
 import hashlib
 import hmac
 import secrets
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
+from cryptography.fernet import Fernet
 
 from app.core.config import get_settings
 
@@ -32,3 +34,16 @@ def hash_token(token: str) -> str:
 def session_expiry() -> datetime:
     minutes = get_settings().access_token_expire_minutes
     return datetime.now(UTC) + timedelta(minutes=minutes)
+
+
+def _fernet() -> Fernet:
+    digest = hashlib.sha256(get_settings().secret_key.encode("utf-8")).digest()
+    return Fernet(base64.urlsafe_b64encode(digest))
+
+
+def encrypt_secret(secret: str) -> str:
+    return _fernet().encrypt(secret.encode("utf-8")).decode("ascii")
+
+
+def decrypt_secret(encrypted_secret: str) -> str:
+    return _fernet().decrypt(encrypted_secret.encode("ascii")).decode("utf-8")

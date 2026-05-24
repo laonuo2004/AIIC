@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AIIC Stack Chat",
-  description: "Full-stack AI chat baseline for the AIIC project challenge.",
+  title: "AIIC Chat Studio",
+  description: "AIIC Chat Studio with OpenRouter model routing and file-aware chat.",
 };
 
 export default function RootLayout({
