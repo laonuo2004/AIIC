@@ -399,7 +399,7 @@ def _submit_omnihuman_video(
         "output_resolution": settings.volcengine_omnihuman_output_resolution,
         "pe_fast_mode": settings.volcengine_omnihuman_fast_mode,
     }
-    body = _visual_api_request("CVSubmitTask", payload)
+    body = _visual_api_request_with_retry("CVSubmitTask", payload)
     _raise_for_omnihuman_body(body, "CVSubmitTask")
     task_id = body.get("data", {}).get("task_id")
     if not task_id:
@@ -409,6 +409,32 @@ def _submit_omnihuman_video(
         "provider_task_id": str(task_id),
         "provider_request_id": str(body.get("request_id") or ""),
     }
+
+
+def _visual_api_request_with_retry(action: str, payload: dict[str, Any]) -> dict[str, Any]:
+    max_attempts = 2
+    last_error: RuntimeError | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return _visual_api_request(action, payload)
+        except RuntimeError as exc:
+            last_error = exc
+            if not _is_transient_omnihuman_error(str(exc)) or attempt == max_attempts:
+                raise
+            logger.warning(
+                "Retrying transient OmniHuman %s failure after attempt %s.",
+                action,
+                attempt,
+            )
+            time.sleep(1)
+    if last_error is not None:
+        raise last_error
+    raise _safe_provider_error("OmniHuman provider request did not run.")
+
+
+def _is_transient_omnihuman_error(message: str) -> bool:
+    transient_markers = ("(502)", "(503)", "(504)", "timed out", "ReadTimeout")
+    return any(marker in message for marker in transient_markers)
 
 
 def _provider_failure_message(response: httpx.Response) -> str:

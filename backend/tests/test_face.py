@@ -19,6 +19,7 @@ from app.services.volcengine_face import (
     _parse_volcengine_frame,
     clone_voice_from_asset,
     generate_face_videos,
+    submit_speaking_face_video,
 )
 
 PNG_1X1 = (
@@ -362,6 +363,55 @@ def test_video_generation_uses_background_audio_for_ready_and_listening_jobs(
     assert ready_payload["pe_fast_mode"] is True
     assert "平静呼吸" in ready_payload["prompt"]
     assert ready_payload["prompt"].isascii() is False
+
+
+def test_speaking_video_submit_retries_transient_omnihuman_504(monkeypatch, tmp_path):
+    image_path = tmp_path / "face.png"
+    audio_path = tmp_path / "voice.wav"
+    image_path.write_bytes(PNG_1X1)
+    audio_path.write_bytes(b"RIFF....WAVEfmt " + b"\x00" * 32)
+    asset = FaceAsset(
+        id=7,
+        user_id=1,
+        image_path=str(image_path),
+        image_mime_type="image/png",
+        image_size_bytes=image_path.stat().st_size,
+        image_media_token="image-token",
+        audio_path=str(audio_path),
+        audio_mime_type="audio/wav",
+        audio_size_bytes=audio_path.stat().st_size,
+        audio_media_token="audio-token",
+    )
+    calls = 0
+
+    def fake_visual_request(action, payload):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("OmniHuman provider request failed (504).")
+        return {
+            "code": 10000,
+            "data": {"task_id": "speaking-task"},
+            "request_id": "speaking-request",
+            "message": "Success",
+        }
+
+    monkeypatch.setenv("VOLCENGINE_OMNIHUMAN_ACCESS_KEY_ID", "ak")
+    monkeypatch.setenv("VOLCENGINE_OMNIHUMAN_SECRET_ACCESS_KEY", "sk")
+    get_settings.cache_clear()
+    monkeypatch.setattr("app.services.volcengine_face._visual_api_request", fake_visual_request)
+
+    try:
+        result = submit_speaking_face_video(
+            asset,
+            "http://public.example/api/face/media/image-token",
+            "http://public.example/api/face/media/audio-token",
+        )
+    finally:
+        get_settings.cache_clear()
+
+    assert calls == 2
+    assert result["provider_task_id"] == "speaking-task"
 
 
 def test_video_poll_updates_ready_and_listening_urls(client, monkeypatch):
