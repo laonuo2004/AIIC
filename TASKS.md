@@ -226,13 +226,21 @@ Current P0.5 completion snapshot:
 - Build a backend adapter spike for Volcengine only if P0 is stable.
 - Document provider risks and fallback behavior.
 
+Current face-to-face experiment snapshot:
+
+- Backend face APIs are implemented for authenticated asset upload, public provider-readable media tokens, voice clone preparation, optional OmniHuman video job submission, session creation, and a browser-to-backend realtime WebSocket contract.
+- Frontend Face-to-Face page now supports interviewer image/reference audio setup, voice/video preparation states, push-to-talk microphone streaming, provider status display, transcript/assistant text panes, cloned response audio playback, and ready/listening/speaking/error visual states.
+- Volcengine realtime video is not represented as true streaming video. The implemented realtime path is speech/audio; OmniHuman remains async best-effort visual enhancement.
+- Provider credentials remain backend-only `.env` values. Normal users do not configure raw model IDs or API keys.
+- Public HTTP microphone access may be browser-limited outside localhost; HTTPS or controlled browser permissions may be needed for a full public smoke session.
+
 ## P2: Explicitly Not For Today Unless Everything Else Is Done
 
-- Full Volcengine end-to-end real-time speech interaction.
-- Voice cloning from uploaded interviewer reference audio.
-- OmniHuman 1.5 fast-mode video generation from interviewer image.
-- Seamless switching among ready, listening, and speaking video states.
-- Real-time voice interview.
+- Full production Volcengine end-to-end real-time speech binary bridge.
+- Fully verified voice cloning from uploaded interviewer reference audio against a real provider account.
+- Fully verified OmniHuman 1.5 fast-mode video generation from interviewer image.
+- Seamless switching among provider-generated ready, listening, and speaking video states.
+- Real-time voice interview validated on the public deployment.
 - Video interview.
 - Full long-term memory system.
 - Semantic resume/project parsing.
@@ -439,7 +447,7 @@ For implementation changes:
 
 Latest known verification:
 
-- `cd backend && uv run pytest`: 28 passed
+- `cd backend && uv run pytest`: 34 passed
 - `cd backend && uv run ruff check .`: passed
 - `cd frontend && pnpm lint`: passed
 - `cd frontend && pnpm build`: passed

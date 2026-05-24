@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import attachments, auth, chat, interviews, providers
+from app.api import attachments, auth, chat, face, interviews, providers
 from app.core.config import Settings, get_settings
 from app.core.database import init_db
 
@@ -60,5 +60,6 @@ def runtime_status() -> dict[str, object]:
 app.include_router(auth.router)
 app.include_router(interviews.router)
 app.include_router(chat.router)
+app.include_router(face.router)
 app.include_router(providers.router)
 app.include_router(attachments.router)

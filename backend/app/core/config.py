@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 5 * 1024 * 1024
     max_attachments_per_message: int = 4
     max_pdf_pages_per_attachment: int = 12
+    public_base_url: str | None = "http://115.190.120.206"
+
+    volcengine_speech_api_key: str | None = Field(default=None, repr=False)
+    volcengine_realtime_resource_id: str = "volc.speech.dialog"
+    volcengine_voice_clone_resource_id: str = "seed-icl-2.0"
+    volcengine_omnihuman_access_key_id: str | None = Field(default=None, repr=False)
+    volcengine_omnihuman_secret_access_key: str | None = Field(default=None, repr=False)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
