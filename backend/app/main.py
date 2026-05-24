@@ -42,6 +42,7 @@ def runtime_status() -> dict[str, object]:
         "database": "sqlite" if current.database_url.startswith("sqlite") else "external",
         "upload_limit_bytes": current.max_upload_bytes,
         "max_attachments_per_message": current.max_attachments_per_message,
+        "max_pdf_pages_per_attachment": current.max_pdf_pages_per_attachment,
         "proxy_enabled": bool(
             current.openrouter_http_proxy
             or os.environ.get("HTTP_PROXY")
@@ -51,6 +52,7 @@ def runtime_status() -> dict[str, object]:
         "model_strategy": {
             "deep": current.interview_deep_model,
             "fast": current.interview_fast_model,
+            "feedback": current.interview_feedback_model,
         },
     }
 

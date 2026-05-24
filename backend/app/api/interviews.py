@@ -7,7 +7,14 @@ from sqlalchemy import desc, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DbSession, current_user
-from app.models.entities import InterviewSession, InterviewTurn, User
+from app.models.entities import (
+    Attachment,
+    InterviewAttachment,
+    InterviewSession,
+    InterviewTurn,
+    User,
+)
+from app.schemas.attachments import AttachmentResponse
 from app.schemas.interviews import (
     InterviewAnswerCreate,
     InterviewCreate,
@@ -55,6 +62,21 @@ def _turn_out(turn: InterviewTurn) -> InterviewTurnOut:
     )
 
 
+def _attachment_response(attachment: Attachment) -> AttachmentResponse:
+    return AttachmentResponse(
+        id=attachment.id,
+        name=attachment.original_name,
+        mime=attachment.mime_type,
+        size=attachment.size_bytes,
+        kind=attachment.kind,
+        created_at=attachment.created_at,
+    )
+
+
+def _interview_attachments(interview: InterviewSession) -> list[Attachment]:
+    return [link.attachment for link in interview.attachments]
+
+
 def _current_question(interview: InterviewSession) -> str | None:
     if interview.status == "finished":
         return None
@@ -79,6 +101,7 @@ def _detail(interview: InterviewSession) -> InterviewDetail:
         updated_at=interview.updated_at,
         finished_at=interview.finished_at,
         turns=[_turn_out(turn) for turn in interview.turns],
+        attachments=[_attachment_response(item) for item in _interview_attachments(interview)],
     )
 
 
@@ -98,12 +121,28 @@ def _summary(interview: InterviewSession) -> InterviewSummary:
 def _load_interview(interview_id: int, db: DbSession, user: User) -> InterviewSession:
     interview = db.scalar(
         select(InterviewSession)
-        .options(selectinload(InterviewSession.turns))
+        .options(
+            selectinload(InterviewSession.turns),
+            selectinload(InterviewSession.attachments).selectinload(InterviewAttachment.attachment),
+        )
         .where(InterviewSession.id == interview_id, InterviewSession.user_id == user.id)
     )
     if interview is None:
         raise HTTPException(status_code=404, detail="Interview not found")
     return interview
+
+
+def _load_owned_attachments(ids: list[int], db: DbSession, user: User) -> list[Attachment]:
+    if not ids:
+        return []
+    unique_ids = list(dict.fromkeys(ids))
+    attachments = db.scalars(
+        select(Attachment).where(Attachment.user_id == user.id, Attachment.id.in_(unique_ids))
+    ).all()
+    if len(attachments) != len(unique_ids):
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    by_id = {item.id: item for item in attachments}
+    return [by_id[item_id] for item_id in unique_ids]
 
 
 @router.post("/api/interviews", response_model=InterviewDetail)
@@ -113,7 +152,8 @@ def create_interview(
     user: CurrentUser,
 ) -> InterviewDetail:
     profile = _profile_from_request(request)
-    first = generate_first_question(profile)
+    attachments = _load_owned_attachments(request.attachment_ids, db, user)
+    first = generate_first_question(profile, attachments)
     title = request.target_direction[:150] or "Research mock interview"
     now = datetime.now(UTC)
     interview = InterviewSession(
@@ -129,6 +169,8 @@ def create_interview(
     )
     db.add(interview)
     db.flush()
+    for attachment in attachments:
+        db.add(InterviewAttachment(interview_id=interview.id, attachment_id=attachment.id))
     db.add(
         InterviewTurn(
             interview_id=interview.id,
@@ -175,6 +217,7 @@ def submit_answer(
         raise HTTPException(status_code=400, detail="No active interview question")
 
     profile = _loads_object(interview.profile_json) or {}
+    attachments = _interview_attachments(interview)
     previous_turns = [
         {
             "question": turn.question,
@@ -189,6 +232,7 @@ def submit_answer(
         question=active_turn.question,
         answer=request.answer,
         previous_turns=previous_turns,
+        attachments=attachments,
     )
     now = datetime.now(UTC)
     active_turn.answer = request.answer
@@ -216,6 +260,7 @@ def finish_interview(interview_id: int, db: DbSession, user: CurrentUser) -> Int
         return _detail(interview)
 
     profile = _loads_object(interview.profile_json) or {}
+    attachments = _interview_attachments(interview)
     answered_turns = [
         {
             "question": turn.question,
@@ -225,7 +270,7 @@ def finish_interview(interview_id: int, db: DbSession, user: CurrentUser) -> Int
         for turn in interview.turns
         if turn.answer is not None
     ]
-    result = generate_final_report(profile=profile, turns=answered_turns)
+    result = generate_final_report(profile=profile, turns=answered_turns, attachments=attachments)
     now = datetime.now(UTC)
     interview.status = "finished"
     interview.final_report_json = json.dumps(result["report"], ensure_ascii=False)

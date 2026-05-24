@@ -3,13 +3,16 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.attachments import AttachmentResponse
+
 
 class InterviewCreate(BaseModel):
-    self_introduction: str = Field(min_length=10, max_length=4000)
-    project_experience: str = Field(min_length=10, max_length=8000)
-    target_direction: str = Field(min_length=2, max_length=255)
+    self_introduction: str = Field(min_length=1, max_length=4000)
+    project_experience: str = Field(min_length=1, max_length=8000)
+    target_direction: str = Field(min_length=1, max_length=255)
     weak_points: str = Field(default="", max_length=2000)
     interview_type: Literal["text"] = "text"
+    attachment_ids: list[int] = Field(default_factory=list, max_length=4)
 
 
 class InterviewAnswerCreate(BaseModel):
@@ -41,6 +44,7 @@ class InterviewDetail(BaseModel):
     updated_at: datetime
     finished_at: datetime | None
     turns: list[InterviewTurnOut]
+    attachments: list[AttachmentResponse] = Field(default_factory=list)
 
 
 class InterviewSummary(BaseModel):

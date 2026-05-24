@@ -8,7 +8,7 @@ export type Attachment = {
   name: string;
   mime: string;
   size: number;
-  kind: "text" | "image" | string;
+  kind: "text" | "image" | "pdf" | string;
   created_at: string;
 };
 
@@ -59,7 +59,9 @@ export type RuntimeStatus = {
   model_strategy?: {
     deep?: string;
     fast?: string;
+    feedback?: string;
   };
+  max_pdf_pages_per_attachment?: number;
   [key: string]: unknown;
 };
 
@@ -108,6 +110,7 @@ export type Interview = {
   updated_at: string;
   finished_at: string | null;
   turns: InterviewTurn[];
+  attachments: Attachment[];
 };
 
 export type InterviewSummary = {
@@ -129,6 +132,31 @@ export type StreamEvent =
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
+function errorMessageFromBody(body: unknown, fallback: string) {
+  if (!body || typeof body !== "object" || !("detail" in body)) {
+    return fallback;
+  }
+  const detail = (body as { detail?: unknown }).detail;
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (!item || typeof item !== "object") return "";
+        const record = item as { loc?: unknown; msg?: unknown };
+        const field = Array.isArray(record.loc) ? record.loc.slice(1).join(".") : "";
+        const message = typeof record.msg === "string" ? record.msg : "";
+        return [field, message].filter(Boolean).join(": ");
+      })
+      .filter(Boolean);
+    if (messages.length > 0) {
+      return messages.join("; ");
+    }
+  }
+  return fallback;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -141,8 +169,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({ detail: "Request failed" }));
-    const detail = typeof body.detail === "string" ? body.detail : "Request failed";
-    throw new Error(detail);
+    throw new Error(errorMessageFromBody(body, "Request failed"));
   }
 
   if (response.status === 204) {
@@ -254,10 +281,10 @@ export async function listInterviews() {
   return result.interviews;
 }
 
-export function createInterview(profile: CandidateProfile) {
+export function createInterview(profile: CandidateProfile, attachmentIds: number[] = []) {
   return request<Interview>("/api/interviews", {
     method: "POST",
-    body: JSON.stringify({ ...profile, interview_type: "text" }),
+    body: JSON.stringify({ ...profile, interview_type: "text", attachment_ids: attachmentIds }),
   });
 }
 

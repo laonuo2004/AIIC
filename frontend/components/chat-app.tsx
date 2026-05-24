@@ -2,8 +2,11 @@
 
 import {
   Bot,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   FileAudio,
+  FileText,
   ImagePlus,
   Loader2,
   LogOut,
@@ -14,6 +17,7 @@ import {
   Settings,
   Sparkles,
   Sun,
+  Trash2,
   UserRound,
   Video,
 } from "lucide-react";
@@ -21,6 +25,7 @@ import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 
 import {
   CandidateProfile,
+  Attachment,
   Interview,
   InterviewSummary,
   RuntimeStatus,
@@ -35,6 +40,7 @@ import {
   logout,
   register,
   submitInterviewAnswer,
+  uploadAttachments,
 } from "@/lib/api";
 
 type AuthMode = "login" | "register";
@@ -64,6 +70,8 @@ export function ChatApp() {
   const [settingsError, setSettingsError] = useState("");
 
   const [profile, setProfile] = useState<CandidateProfile>(EMPTY_PROFILE);
+  const [profileAttachments, setProfileAttachments] = useState<Attachment[]>([]);
+  const [uploadError, setUploadError] = useState("");
   const [interviews, setInterviews] = useState<InterviewSummary[]>([]);
   const [activeInterview, setActiveInterview] = useState<Interview | null>(null);
   const [answer, setAnswer] = useState("");
@@ -103,9 +111,9 @@ export function ChatApp() {
   );
 
   const canStart =
-    profile.self_introduction.trim().length >= 10 &&
-    profile.project_experience.trim().length >= 10 &&
-    profile.target_direction.trim().length >= 2;
+    profile.self_introduction.trim().length > 0 &&
+    profile.project_experience.trim().length > 0 &&
+    profile.target_direction.trim().length > 0;
 
   async function refreshInterviews() {
     const items = await listInterviews();
@@ -154,7 +162,7 @@ export function ChatApp() {
         project_experience: profile.project_experience.trim(),
         target_direction: profile.target_direction.trim(),
         weak_points: profile.weak_points.trim(),
-      });
+      }, profileAttachments.map((attachment) => attachment.id));
       setActiveInterview(created);
       await refreshInterviews();
     } catch (error) {
@@ -210,6 +218,24 @@ export function ChatApp() {
     setActiveInterview(null);
     setAnswer("");
     setInterviewError("");
+  }
+
+  async function addProfileAttachments(files: File[]) {
+    if (files.length === 0 || working) return;
+    setWorking(true);
+    setUploadError("");
+    try {
+      const result = await uploadAttachments(files);
+      setProfileAttachments((current) => [...current, ...result.attachments]);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  function removeProfileAttachment(id: number) {
+    setProfileAttachments((current) => current.filter((attachment) => attachment.id !== id));
   }
 
   async function signOut() {
@@ -331,12 +357,16 @@ export function ChatApp() {
             finishActiveInterview={finishActiveInterview}
             interviews={interviews}
             profile={profile}
+            profileAttachments={profileAttachments}
             resetInterviewDraft={resetInterviewDraft}
+            removeProfileAttachment={removeProfileAttachment}
             selectInterview={selectInterview}
+            addProfileAttachments={addProfileAttachments}
             setAnswer={setAnswer}
             setProfile={setProfile}
             startInterview={startInterview}
             submitAnswer={submitAnswer}
+            uploadError={uploadError}
             user={user}
             working={working}
           />
@@ -387,12 +417,16 @@ function TextInterviewWorkspace(props: {
   finishActiveInterview: () => void;
   interviews: InterviewSummary[];
   profile: CandidateProfile;
+  profileAttachments: Attachment[];
   resetInterviewDraft: () => void;
+  removeProfileAttachment: (id: number) => void;
   selectInterview: (id: number) => void;
+  addProfileAttachments: (files: File[]) => void;
   setAnswer: (value: string) => void;
   setProfile: (value: CandidateProfile) => void;
   startInterview: (event: FormEvent<HTMLFormElement>) => void;
   submitAnswer: (event: FormEvent<HTMLFormElement>) => void;
+  uploadError: string;
   user: User;
   working: boolean;
 }) {
@@ -446,8 +480,12 @@ function TextInterviewWorkspace(props: {
           <ProfileForm
             canStart={props.canStart}
             profile={props.profile}
+            profileAttachments={props.profileAttachments}
+            removeProfileAttachment={props.removeProfileAttachment}
+            addProfileAttachments={props.addProfileAttachments}
             setProfile={props.setProfile}
             startInterview={props.startInterview}
+            uploadError={props.uploadError}
             working={props.working}
           />
         ) : (
@@ -469,8 +507,12 @@ function TextInterviewWorkspace(props: {
 function ProfileForm(props: {
   canStart: boolean;
   profile: CandidateProfile;
+  profileAttachments: Attachment[];
+  removeProfileAttachment: (id: number) => void;
+  addProfileAttachments: (files: File[]) => void;
   setProfile: (value: CandidateProfile) => void;
   startInterview: (event: FormEvent<HTMLFormElement>) => void;
+  uploadError: string;
   working: boolean;
 }) {
   function update(key: keyof CandidateProfile, value: string) {
@@ -528,6 +570,46 @@ function ProfileForm(props: {
           />
         </label>
       </div>
+      <section className="attachment-dropzone" aria-label="Candidate materials">
+        <label className="file-picker">
+          <FileText size={18} />
+          <span>
+            Add notes, diagrams, or PDF pages
+            <small>TXT, MD, JSON, CSV, PNG, JPEG, WebP, GIF, PDF</small>
+          </span>
+          <input
+            type="file"
+            multiple
+            accept=".txt,.md,.json,.csv,.log,image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf"
+            onChange={(event) => {
+              props.addProfileAttachments(Array.from(event.target.files ?? []));
+              event.currentTarget.value = "";
+            }}
+            disabled={props.working}
+          />
+        </label>
+        {props.uploadError ? <p className="form-error">{props.uploadError}</p> : null}
+        {props.profileAttachments.length > 0 ? (
+          <div className="attachment-chip-list">
+            {props.profileAttachments.map((attachment) => (
+              <div className="attachment-chip" key={attachment.id}>
+                <FileText size={15} />
+                <span>
+                  <strong>{attachment.name}</strong>
+                  <small>{attachment.kind.toUpperCase()} · {formatBytes(attachment.size)}</small>
+                </span>
+                <button
+                  type="button"
+                  title="Remove attachment"
+                  onClick={() => props.removeProfileAttachment(attachment.id)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
       <button className="primary-button wide" type="submit" disabled={!props.canStart || props.working}>
         {props.working ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
         Start interview
@@ -545,6 +627,13 @@ function InterviewRoom(props: {
   submitAnswer: (event: FormEvent<HTMLFormElement>) => void;
   working: boolean;
 }) {
+  const [visibleTurnIndex, setVisibleTurnIndex] = useState(0);
+  const visibleTurn = props.answeredTurns[visibleTurnIndex] ?? null;
+
+  useEffect(() => {
+    setVisibleTurnIndex((current) => Math.min(current, Math.max(props.answeredTurns.length - 1, 0)));
+  }, [props.answeredTurns.length]);
+
   return (
     <div className="interview-room">
       <section className="question-panel">
@@ -576,18 +665,48 @@ function InterviewRoom(props: {
         <ReportCard report={props.activeInterview.final_report} />
       ) : null}
 
-      <section className="turn-list">
-        {props.answeredTurns.map((turn) => (
-          <article className="turn-card" key={turn.id}>
-            <div className="turn-question">
-              <UserRound size={17} />
-              <strong>Q{turn.turn_index}. {turn.question}</strong>
+      {visibleTurn ? (
+        <section className="qa-review-panel" aria-label="Answered questions">
+          <div className="qa-review-header">
+            <div>
+              <p className="eyebrow">Answered Q&A</p>
+              <h3>Question {visibleTurn.turn_index} of {props.answeredTurns.length}</h3>
             </div>
-            <p className="answer-text">{turn.answer}</p>
-            {turn.feedback ? <FeedbackCard feedback={turn.feedback} /> : null}
+            <div className="pager-controls">
+              <button
+                type="button"
+                title="Previous answer"
+                disabled={visibleTurnIndex === 0}
+                onClick={() => setVisibleTurnIndex((current) => Math.max(current - 1, 0))}
+              >
+                <ChevronLeft size={17} />
+              </button>
+              <button
+                type="button"
+                title="Next answer"
+                disabled={visibleTurnIndex >= props.answeredTurns.length - 1}
+                onClick={() =>
+                  setVisibleTurnIndex((current) =>
+                    Math.min(current + 1, props.answeredTurns.length - 1),
+                  )
+                }
+              >
+                <ChevronRight size={17} />
+              </button>
+            </div>
+          </div>
+          <article className="qa-review-body">
+            <div className="qa-copy">
+              <div className="turn-question">
+                <UserRound size={17} />
+                <strong>{visibleTurn.question}</strong>
+              </div>
+              <p className="answer-text">{visibleTurn.answer}</p>
+            </div>
+            {visibleTurn.feedback ? <FeedbackCard feedback={visibleTurn.feedback} /> : null}
           </article>
-        ))}
-      </section>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -595,10 +714,19 @@ function InterviewRoom(props: {
 function FeedbackCard({ feedback }: { feedback: NonNullable<Interview["turns"][number]["feedback"]> }) {
   return (
     <div className="feedback-card">
-      <div className="score-pill">{feedback.score ?? "?"}/10</div>
-      <ListBlock title="Strengths" items={feedback.strengths ?? []} />
-      <ListBlock title="Weaknesses" items={feedback.weaknesses ?? []} />
-      {feedback.advice ? <p className="advice">{feedback.advice}</p> : null}
+      <div className="score-row">
+        <div className="score-pill">{feedback.score ?? "?"}/10</div>
+      </div>
+      <div className="feedback-comparison">
+        <ListBlock title="Strengths" items={feedback.strengths ?? []} />
+        <ListBlock title="Weaknesses" items={feedback.weaknesses ?? []} />
+      </div>
+      {feedback.advice ? (
+        <div className="advice-row">
+          <h3>Next step</h3>
+          <p>{feedback.advice}</p>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -719,6 +847,11 @@ function SettingsWorkspace(props: {
             <StatusItem label="Proxy env" value={props.runtimeStatus?.proxy_enabled ? "enabled" : "not detected"} />
             <StatusItem label="Deep model" value={props.runtimeStatus?.model_strategy?.deep ?? "configured server-side"} />
             <StatusItem label="Fast model" value={props.runtimeStatus?.model_strategy?.fast ?? "configured server-side"} />
+            <StatusItem label="Feedback model" value={props.runtimeStatus?.model_strategy?.feedback ?? "configured server-side"} />
+            <StatusItem
+              label="PDF page limit"
+              value={String(props.runtimeStatus?.max_pdf_pages_per_attachment ?? "unknown")}
+            />
           </dl>
         </div>
       </section>

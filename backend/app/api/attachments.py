@@ -17,6 +17,7 @@ UploadFiles = Annotated[list[UploadFile], File()]
 
 TEXT_EXTENSIONS = {".txt", ".md", ".json", ".csv", ".log"}
 IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+PDF_MIME_TYPES = {"application/pdf"}
 
 
 def _attachment_response(attachment: Attachment) -> AttachmentResponse:
@@ -35,6 +36,8 @@ def _kind_for_upload(filename: str, mime_type: str) -> str | None:
         return "text"
     if mime_type in IMAGE_MIME_TYPES:
         return "image"
+    if Path(filename).suffix.lower() == ".pdf" or mime_type in PDF_MIME_TYPES:
+        return "pdf"
     return None
 
 

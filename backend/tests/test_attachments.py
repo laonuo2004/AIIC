@@ -76,6 +76,24 @@ def test_text_and_image_attachment_upload_download_and_auth(client):
     assert forbidden.status_code == 404
 
 
+def test_pdf_attachment_upload_download_and_auth(client):
+    _register_and_login(client)
+
+    upload = client.post(
+        "/api/attachments",
+        files=[("files", ("paper.pdf", b"%PDF-1.4\n%minimal\n", "application/pdf"))],
+    )
+
+    assert upload.status_code == 201
+    attachment = upload.json()["attachments"][0]
+    assert attachment["kind"] == "pdf"
+    assert attachment["name"] == "paper.pdf"
+
+    download = client.get(f"/api/attachments/{attachment['id']}")
+    assert download.status_code == 200
+    assert download.content == b"%PDF-1.4\n%minimal\n"
+
+
 def test_attachment_upload_rejects_unsupported_size_and_count(client):
     _register_and_login(client)
 

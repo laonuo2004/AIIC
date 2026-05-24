@@ -133,6 +133,7 @@ class Attachment(Base):
 
     user: Mapped[User] = relationship(back_populates="attachments")
     messages: Mapped[list["MessageAttachment"]] = relationship(back_populates="attachment")
+    interviews: Mapped[list["InterviewAttachment"]] = relationship(back_populates="attachment")
 
 
 class MessageAttachment(Base):
@@ -148,6 +149,21 @@ class MessageAttachment(Base):
 
     message: Mapped[Message] = relationship(back_populates="attachments")
     attachment: Mapped[Attachment] = relationship(back_populates="messages")
+
+
+class InterviewAttachment(Base):
+    __tablename__ = "interview_attachments"
+    __table_args__ = (
+        UniqueConstraint("interview_id", "attachment_id", name="uq_interview_attachment"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    interview_id: Mapped[int] = mapped_column(ForeignKey("interview_sessions.id"), nullable=False)
+    attachment_id: Mapped[int] = mapped_column(ForeignKey("attachments.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    interview: Mapped["InterviewSession"] = relationship(back_populates="attachments")
+    attachment: Mapped[Attachment] = relationship(back_populates="interviews")
 
 
 class InterviewSession(Base):
@@ -171,6 +187,10 @@ class InterviewSession(Base):
         back_populates="interview",
         cascade="all, delete-orphan",
         order_by="InterviewTurn.turn_index",
+    )
+    attachments: Mapped[list["InterviewAttachment"]] = relationship(
+        back_populates="interview",
+        cascade="all, delete-orphan",
     )
 
 
